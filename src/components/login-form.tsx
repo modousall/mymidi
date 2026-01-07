@@ -9,18 +9,18 @@ import { Label } from '@/components/ui/label';
 import { LogIn } from 'lucide-react';
 
 type LoginFormProps = {
-    onLogin: (alias: string, pin: string) => void;
+    onLogin: (identifier: string, secret: string) => void;
     onBack: () => void;
 };
 
 export default function LoginForm({ onLogin, onBack }: LoginFormProps) {
-    const [alias, setAlias] = useState('');
-    const [pin, setPin] = useState('');
+    const [identifier, setIdentifier] = useState('');
+    const [secret, setSecret] = useState('');
   
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!alias || !pin) return;
-      onLogin(alias, pin);
+      if (!identifier || !secret) return;
+      onLogin(identifier, secret);
     };
   
     return (
@@ -37,33 +37,31 @@ export default function LoginForm({ onLogin, onBack }: LoginFormProps) {
                 <CardHeader>
                     <CardTitle>Connexion</CardTitle>
                     <CardDescription>
-                        Entrez votre alias et votre code PIN pour accéder à votre compte.
+                        Entrez vos identifiants pour accéder à votre compte.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <Label htmlFor="alias-login">Votre Alias</Label>
+                            <Label htmlFor="identifier-login">E-mail ou Alias</Label>
                             <Input
-                                id="alias-login"
+                                id="identifier-login"
                                 type="text"
-                                placeholder="Entrez votre alias ou numéro"
-                                value={alias}
-                                onChange={(e) => setAlias(e.target.value)}
+                                placeholder="Entrez votre e-mail ou alias"
+                                value={identifier}
+                                onChange={(e) => setIdentifier(e.target.value)}
                                 required
                             />
                         </div>
                         <div>
-                            <Label htmlFor="pin-login">Code PIN</Label>
+                            <Label htmlFor="secret-login">Code PIN ou Mot de passe</Label>
                             <Input
-                                id="pin-login"
+                                id="secret-login"
                                 type="password"
                                 placeholder="••••"
-                                value={pin}
-                                onChange={(e) => setPin(e.target.value)}
+                                value={secret}
+                                onChange={(e) => setSecret(e.target.value)}
                                 required
-                                maxLength={4}
-                                inputMode="numeric"
                             />
                         </div>
                         <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-6">

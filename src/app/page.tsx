@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -321,18 +322,17 @@ function AuthWrapper() {
         toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
     }
 
-    const handleLogin = (loginAlias: string, pin: string) => {
+    const handleLogin = (loginIdentifier: string, secret: string) => {
         if (!firestore || !auth) return;
         
-        const isEmail = loginAlias.includes('@');
-        const password = `${pin}${pin}`;
-
+        const isEmail = loginIdentifier.includes('@');
+        
         const handleAuthError = (error: any) => {
             console.error("Firebase sign-in error:", error);
             if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                 toast({
                     title: "Erreur de Connexion",
-                    description: "L'identifiant ou le code PIN est incorrect.",
+                    description: "L'identifiant ou le secret est incorrect.",
                     variant: "destructive",
                 });
             } else {
@@ -345,13 +345,14 @@ function AuthWrapper() {
         };
     
         if (isEmail) {
-            // Login with email
-            signInWithEmailAndPassword(auth, loginAlias, password)
+            // For emails, the 'secret' is treated as the full password
+            signInWithEmailAndPassword(auth, loginIdentifier, secret)
                 .catch(handleAuthError);
         } else {
-            // Login with phone number alias
+            // For phone number alias, the 'secret' is a PIN, so we construct the password
+            const password = `${secret}${secret}`;
             const usersRef = collection(firestore, 'users');
-            const q = query(usersRef, where("phoneNumber", "==", loginAlias));
+            const q = query(usersRef, where("phoneNumber", "==", loginIdentifier));
     
             getDocs(q).then(querySnapshot => {
                 if (querySnapshot.empty) {
