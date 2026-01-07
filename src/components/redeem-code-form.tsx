@@ -23,7 +23,7 @@ const redeemSchema = z.object({
 type RedeemFormValues = z.infer<typeof redeemSchema>;
 
 type RedeemCodeFormProps = {
-    addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => void;
+    addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'accountId'>) => void;
 };
 
 export default function RedeemCodeForm({ addTransaction }: RedeemCodeFormProps) {
@@ -63,7 +63,7 @@ export default function RedeemCodeForm({ addTransaction }: RedeemCodeFormProps) 
           // The merchant receives the money from the client's debit
           addTransaction({
               type: 'received',
-              counterparty: `Client ${transactionToFinalize.userId.substring(0,6)}`,
+              counterparty: `Client ${transactionToFinalize.accountId.substring(0,6)}`,
               reason: `Validation retrait - Code ${transactionToFinalize.reason.split(': ')[1]}`,
               amount: transactionToFinalize.amount,
               status: 'Terminé',
@@ -88,7 +88,7 @@ export default function RedeemCodeForm({ addTransaction }: RedeemCodeFormProps) 
             <div className="py-4 space-y-2 text-center">
                 <p className="text-sm text-muted-foreground">Montant à remettre au client</p>
                 <p className="text-4xl font-bold text-primary">{formatCurrency(transactionToFinalize.amount)}</p>
-                <p className="text-sm text-muted-foreground">Client: {transactionToFinalize.userId.substring(0,10)}...</p>
+                <p className="text-sm text-muted-foreground">Client: {transactionToFinalize.accountId.substring(0,10)}...</p>
             </div>
             <DialogFooter>
                 <Button variant="ghost" onClick={() => setTransactionToFinalize(null)}>Annuler</Button>

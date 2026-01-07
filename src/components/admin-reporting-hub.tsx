@@ -87,7 +87,7 @@ const RegulatoryReports = ({ allTransactions }: { allTransactions: Transaction[]
         // Use real transaction data
         const dataToExport = allTransactions.map(tx => ({
             'ID Transaction': tx.id,
-            'ID Utilisateur': tx.userId,
+            'ID Compte': tx.accountId,
             'Date': (tx.date as any)?.toDate ? (tx.date as any).toDate().toISOString() : tx.date,
             'Type': tx.type,
             'Contrepartie': tx.counterparty,

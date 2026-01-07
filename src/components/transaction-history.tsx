@@ -254,14 +254,14 @@ const LoadingSkeleton = () => (
 
 
 export default function TransactionHistory({ showAll, onShowAll }: TransactionHistoryProps) {
-    const { recentTransactions, historyTransactions, isLoading } = useTransactions();
+    const { recentTransactions, historyTransactions, loading } = useTransactions();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
 
     const transactionsToFilter = showAll ? historyTransactions : recentTransactions;
 
     const filteredTransactions = useMemo(() => {
-        if (!transactionsToFilter) return [];
+        if (loading || !transactionsToFilter) return [];
         return transactionsToFilter.filter(tx => {
             const searchMatch = searchTerm.toLowerCase() === '' ||
                                 tx.counterparty.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -272,10 +272,10 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
 
             return searchMatch && filterMatch;
         });
-    }, [transactionsToFilter, searchTerm, activeFilter]);
+    }, [transactionsToFilter, searchTerm, activeFilter, loading]);
 
 
-    const transactionsToShow = showAll ? filteredTransactions : filteredTransactions.slice(0, 5);
+    const transactionsToShow = filteredTransactions;
 
     return (
         <Card className="shadow-none border-none bg-transparent">
@@ -324,7 +324,7 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
                 )}
             </CardHeader>
             <CardContent className="px-0">
-                {isLoading ? (
+                {loading ? (
                     <LoadingSkeleton />
                 ) : transactionsToShow.length > 0 ? (
                     <div className="space-y-1">

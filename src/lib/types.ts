@@ -17,7 +17,7 @@ export type Transaction = {
   date: string; // ISO string
   amount: number;
   status: "Terminé" | "En attente" | "Échoué" | "Retourné";
-  userId: string;
+  accountId: string;
 };
 
 export type ManagedUser = {
