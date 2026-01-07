@@ -92,7 +92,7 @@ const financingTypeLabels: Record<FinancingType, string> = {
 };
 
 // --- Result Display Component ---
-const ResultDisplay = ({ result, onBack }: { result: BnplAssessmentOutput | IslamicFinancingOutput, onBack: () => void }) => {
+const ResultDisplay = ({ result, onBack, submittedAmount }: { result: BnplAssessmentOutput | IslamicFinancingOutput, onBack: () => void, submittedAmount: number }) => {
     const statusConfig = {
         approved: { icon: <CheckCircle className="h-12 w-12 text-green-500" />, title: "Demande Approuvée !", alertVariant: "default" as "default", desc: "Votre demande a été approuvée." },
         rejected: { icon: <XCircle className="h-12 w-12 text-destructive" />, title: "Demande Rejetée", alertVariant: "destructive" as "destructive", desc: "Nous ne pouvons pas approuver votre demande pour le moment." },
@@ -104,6 +104,12 @@ const ResultDisplay = ({ result, onBack }: { result: BnplAssessmentOutput | Isla
         <div className="flex flex-col items-center justify-center text-center space-y-6 max-w-lg mx-auto">
             {config.icon}
             <h2 className="text-2xl font-bold">{config.title}</h2>
+            
+            <div className="p-4 bg-secondary rounded-lg w-full">
+                <p className="text-sm text-muted-foreground">Montant de votre demande</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(submittedAmount)}</p>
+            </div>
+
             <Alert variant={config.alertVariant}>
                 <AlertTitle className="font-semibold">Raison: {result.reason}</AlertTitle>
                 <AlertDescription>{config.desc}</AlertDescription>
@@ -346,7 +352,8 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
   }
 
   if(assessmentResult) {
-    return <ResultDisplay result={assessmentResult} onBack={handleResetAndBack} />;
+    const submittedAmount = (form.getValues('financingType') === 'bnpl' ? form.getValues('amount') : form.getValues('amount')) || 0;
+    return <ResultDisplay result={assessmentResult} onBack={handleResetAndBack} submittedAmount={submittedAmount} />;
   }
 
   return (

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,8 @@ const RepaymentSection = () => {
 
 
 export default function Financing({ onBack }: FinancingProps) {
+  const { currentCreditBalance } = useBnpl();
+
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
@@ -80,7 +83,7 @@ export default function Financing({ onBack }: FinancingProps) {
       
       <div className="max-w-2xl mx-auto">
         <MyFinancingRequests isStandalone={false} />
-        <RepaymentSection />
+        {currentCreditBalance > 0 && <RepaymentSection />}
         <UnifiedFinancingForm onBack={onBack} />
       </div>
     </div>
