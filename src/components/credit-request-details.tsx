@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { BnplRequest, BnplStatus } from "@/lib/types";

@@ -130,7 +130,7 @@ export default function MerchantDashboard({ onLogout, userInfo, alias }: Merchan
         <div className="min-h-screen bg-secondary">
             <header className="bg-background border-b shadow-sm sticky top-0 z-10">
                 <div className="container mx-auto p-4 flex justify-between items-center">
-                    <h1 className="text-xl font-bold text-primary">Tableau de Bord Marchand</h1>
+                    <h1 className="text-xl font-bold text-primary">Tableau de Bord - {userInfo.name}</h1>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" onClick={onLogout}>
                             <LogOut className="mr-2" /> Déconnexion
