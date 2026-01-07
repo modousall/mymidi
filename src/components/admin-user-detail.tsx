@@ -372,7 +372,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
                             </div>
                             {user.role === 'merchant' && (
                                 <>
-                                     <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Marque</span> <span className="font-semibold">{(user as any).brandName || "N/A"}</span></div>
+                                     <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Nom de la marque</span> <span className="font-semibold">{(user as any).brandName || "N/A"}</span></div>
                                      <div className="flex justify-between"><span className="text-muted-foreground">Code Marchand</span> <span className="font-semibold">{user.merchantCode || "N/A"}</span></div>
                                      <div className="flex justify-between"><span className="text-muted-foreground">NINEA</span> <span className="font-semibold">{(user as any).ninea || "N/A"}</span></div>
                                      <div className="flex justify-between"><span className="text-muted-foreground">RCCM</span> <span className="font-semibold">{(user as any).rccm || "N/A"}</span></div>
