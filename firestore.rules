@@ -106,7 +106,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin() || isSigningInByPhone();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
@@ -120,7 +120,7 @@ service cloud.firestore {
        */
       match /transactions/{transactionId} {
         allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId);
+        allow create: if isOwner(userId) && (request.resource.data.senderId == userId || request.resource.data.receiverId == userId);
         allow update: if isExistingOwner(userId) || isAdmin();
         allow delete: if isExistingOwner(userId) || isAdmin();
       }
@@ -153,6 +153,17 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update: if isOwnerOfExistingDoc(resource.data.userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isOwnerOfExistingDoc(resource.data.userId);
+    }
+    
+    /**
+     * @description Controls access to the 'transactions' collection group.
+     * @path /users/{userId}/transactions/{transactionId} (via collection group)
+     * @allow (get, list) Admins can query across all transactions for analytics.
+     * @deny Regular users cannot perform collection group queries.
+     * @principle Grants wide read access for administrative and analytical purposes only.
+     */
+    match /{path=**}/transactions/{transactionId} {
+      allow get, list: if isAdmin();
     }
   }
 }
