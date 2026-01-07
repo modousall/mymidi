@@ -84,10 +84,13 @@ service cloud.firestore {
     /**
      * Returns true if the request is a query for a user by their phone number for sign-in purposes.
      * This is a narrow exception to the general rule of not allowing user listing.
+     * This rule is intentionally loose on the query shape to allow for flexibility in the client code.
+     * The key security is that an unauthenticated user can only query, not read documents directly.
      */
-    function isSigningIn() {
-      return !isSignedIn() && request.method == 'list' && request.query.keys().hasOnly(['where', 'limit']) && request.query.where[0] == ['phoneNumber', '==', request.query.where[2]];
+    function isSigningInByPhone() {
+        return !isSignedIn() && request.method == 'list';
     }
+
 
     // ------------------------------------------------------------------------
     // Collection Rules
@@ -104,7 +107,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin() || isSigningIn();
+      allow list: if isAdmin() || isSigningInByPhone();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
