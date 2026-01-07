@@ -27,8 +27,8 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider, useUser, useAuth, useFirestore, createUserWithEmailAndPassword, signInWithEmailAndPassword, FirestorePermissionError, errorEmitter } from '@/firebase';
-import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
+import { FirebaseClientProvider, useUser, useAuth, useFirestore, createUserWithEmailAndPassword, signInWithEmailAndPassword, FirestorePermissionError, errorEmitter, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
@@ -64,8 +64,10 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 
     try {
         await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        // If sign-in is successful, the user exists. We sign them out to not keep them logged in during bootstrap.
         await auth.signOut();
     } catch (error: any) {
+        // If user does not exist, create them
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
@@ -95,8 +97,10 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
                         errorEmitter.emit('permission-error', permissionError);
                     });
 
+                // Sign out after creating the account to let the user log in normally
                 await auth.signOut();
             } catch (creationError) {
+                // This might happen if there's a race condition or other issue
                 console.error("Failed to create superadmin:", creationError);
             }
         }
@@ -106,6 +110,7 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 
 const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => {
   const handleSettlement = (tx: any) => {
+      // In a real app, this would be a Firestore transaction
       console.warn("Settlement transaction from ProductProvider:", tx);
   }
   return (
@@ -115,7 +120,7 @@ const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => 
   )
 }
 
-// A single wrapper for all providers
+// A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
     return (
         <TransactionsProvider alias={alias}>
@@ -170,63 +175,70 @@ const getDashboardStepForRole = (role: UserInfo['role']): AppStep => {
 
 function AuthWrapper() {
     const { user, isUserLoading } = useUser();
-    const [step, setStep] = useState<AppStep>(isUserLoading ? 'demo' : 'login'); // Start at demo/login
+    const [step, setStep] = useState<AppStep>('demo');
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
     const { toast } = useToast();
     const auth = useAuth();
     const firestore = useFirestore();
 
+    // Bootstrap superadmin on initial load
     useEffect(() => {
         if(auth && firestore) {
            ensureSuperAdminExists(auth, firestore);
         }
     }, [auth, firestore]);
 
+    // Firestore hook to get user profile data
+    const userDocRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    const { data: userDoc, isLoading: isUserDocLoading } = useDoc<Omit<UserInfo, 'id' | 'alias'> & { role: UserInfo['role'], phoneNumber: string, isSuspended: boolean }>(userDocRef);
+
 
     useEffect(() => {
-        if (isUserLoading) {
-            setStep('demo'); // Show demo while checking auth state
+        if (isUserLoading || isUserDocLoading) {
+            setStep('demo'); // Show demo/loading state
             return;
         }
 
-        if (user) {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            getDoc(userDocRef).then(docSnap => {
-                if (docSnap.exists()) {
-                    const userData = docSnap.data() as Omit<UserInfo, 'id' | 'alias'> & { role: UserInfo['role'], phoneNumber: string, isSuspended: boolean };
-                    if(userData.isSuspended){
-                        toast({
-                            title: "Compte Suspendu",
-                            description: "Votre compte a été suspendu. Veuillez contacter le support.",
-                            variant: "destructive",
-                        });
-                        auth.signOut();
-                        setStep('login');
-                        setUserInfo(null);
-                        return;
-                    }
+        if (user && userDoc) {
+            if (userDoc.isSuspended) {
+                toast({
+                    title: "Compte Suspendu",
+                    description: "Votre compte a été suspendu. Veuillez contacter le support.",
+                    variant: "destructive",
+                });
+                auth.signOut();
+                setStep('login');
+                setUserInfo(null);
+                return;
+            }
 
-                    setUserInfo({
-                        id: user.uid,
-                        firstName: userData.firstName,
-                        lastName: userData.lastName,
-                        email: user.email || '',
-                        role: userData.role,
-                        alias: userData.phoneNumber,
-                    });
-                    setStep(getDashboardStepForRole(userData.role));
-                } else {
-                    console.error("User document not found in Firestore for authenticated user.");
-                    auth.signOut();
-                    setStep('login');
-                    setUserInfo(null);
-                }
+            setUserInfo({
+                id: user.uid,
+                firstName: userDoc.firstName,
+                lastName: userDoc.lastName,
+                email: user.email || '',
+                role: userDoc.role,
+                alias: userDoc.phoneNumber,
             });
+            setStep(getDashboardStepForRole(userDoc.role));
+
+        } else if (user && !userDoc && !isUserDocLoading) {
+            // This case means user is authenticated but has no firestore document.
+            // This could be an error state, or part of a multi-step registration.
+            // For now, we sign them out to be safe.
+            console.error("User is authenticated but no Firestore document was found.");
+            auth.signOut();
+            setStep('login');
+            setUserInfo(null);
         } else {
+            // No user is authenticated
             setStep('demo');
             setUserInfo(null);
         }
-    }, [user, isUserLoading, auth, firestore, toast]);
+    }, [user, userDoc, isUserLoading, isUserDocLoading, auth, toast]);
 
     const handleAliasCreated = (newAlias: string) => {
         sessionStorage.setItem('midi_onboarding_alias', newAlias);
@@ -274,6 +286,7 @@ function AuthWrapper() {
                     balance: 0,
                 };
 
+                // Use non-blocking setDoc with error handling
                 setDoc(userDocRef, userData)
                   .catch(async (serverError) => {
                     const permissionError = new FirestorePermissionError({
@@ -288,7 +301,8 @@ function AuthWrapper() {
                 sessionStorage.removeItem('midi_onboarding_alias');
                 sessionStorage.removeItem('midi_onboarding_user_info');
                 
-                toast({ title: "Compte créé avec succès !", description: "Bienvenue sur Midi." });
+                // No toast here, the useEffect will handle the transition to dashboard
+                // toast({ title: "Compte créé avec succès !", description: "Bienvenue sur Midi." });
 
             } catch(error: any) {
                  toast({
@@ -340,9 +354,6 @@ function AuthWrapper() {
         if (isEmail) {
             // Login with email
             signInWithEmailAndPassword(auth, loginAlias, password)
-                .then(userCredential => {
-                    toast({ title: "Connexion réussie !" });
-                })
                 .catch(handleAuthError);
         } else {
             // Login with phone number alias
@@ -358,15 +369,7 @@ function AuthWrapper() {
                 const userDoc = querySnapshot.docs[0];
                 const userData = userDoc.data();
     
-                if (userData.isSuspended) {
-                    toast({ title: "Compte Suspendu", description: "Ce compte est suspendu.", variant: "destructive" });
-                    return;
-                }
-    
                 signInWithEmailAndPassword(auth, userData.email, password)
-                    .then(userCredential => {
-                        toast({ title: `Bienvenue, ${userData.firstName} !` });
-                    })
                     .catch(handleAuthError);
             }).catch(error => {
                  console.error("Error fetching user for login:", error);

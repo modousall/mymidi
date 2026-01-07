@@ -66,9 +66,9 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
     }
     const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
     
+    // Non-blocking write with error handling
     addDoc(transactionsColRef, {
       ...transaction,
-      id: `TXN-${uuidv4()}`,
       userId: user.uid,
       date: serverTimestamp(),
     }).catch(error => {
@@ -88,6 +88,7 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
     if (!user || !firestore) return;
     const txDocRef = doc(firestore, `users/${user.uid}/transactions`, id);
     
+    // Non-blocking write with error handling
     updateDoc(txDocRef, { status }).catch(error => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: txDocRef.path,
