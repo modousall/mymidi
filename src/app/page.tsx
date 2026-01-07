@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,7 +9,6 @@ import LoginForm from '@/components/login-form';
 import KYCForm from '@/components/kyc-form';
 import PinCreation from '@/components/pin-creation';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
 import Dashboard from '@/components/dashboard';
 import { AvatarProvider } from '@/hooks/use-avatar';
 import { BalanceProvider } from '@/hooks/use-balance';
@@ -30,8 +28,9 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider, useUser, useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseClientProvider, useUser, useAuth, useFirestore, createUserWithEmailAndPassword, signInWithEmailAndPassword } from '@/firebase';
+import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
+
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
   loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
@@ -44,30 +43,62 @@ const MerchantDashboard = dynamic(() => import('@/components/merchant-dashboard'
 
 
 type UserInfo = {
-  name: string;
+  id: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: 'user' | 'merchant' | 'admin' | 'superadmin' | 'support' | 'agent';
+  alias: string;
 };
 
 type AppStep = 'demo' | 'permissions' | 'login' | 'kyc' | 'alias' | 'pin_creation' | 'dashboard' | 'merchant_dashboard' | 'admin_dashboard';
 
-// Function to ensure the superadmin exists in localStorage
-const ensureSuperAdminExists = () => {
-    const adminAlias = '+221775478575';
-    const adminUserKey = `midi_user_${adminAlias}`;
 
-    if (typeof window !== 'undefined' && !localStorage.getItem(adminUserKey)) {
-        const adminUser = {
-            name: 'Modou Sall',
-            email: 'modousall1@gmail.com',
-            pincode: '1234',
-            role: 'superadmin',
-        };
-        localStorage.setItem(adminUserKey, JSON.stringify(adminUser));
-        // Also set a default balance for the superadmin
-        localStorage.setItem(`midi_balance_${adminAlias}`, '1000000');
+// Function to ensure the superadmin exists in Firebase
+const ensureSuperAdminExists = async (auth: any, firestore: any) => {
+    if (!auth || !firestore) return;
+
+    const adminEmail = 'modousall1@gmail.com';
+    const adminPincode = '1234';
+    const adminPassword = `${adminPincode}${adminPincode}`;
+    const adminAlias = '+221775478575';
+
+    // We can't directly check if a user exists by email on the client-side without signing in.
+    // A common workaround for bootstrap is to try signing in, and if it fails with 'user-not-found', create the user.
+    try {
+        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+        // If sign-in succeeds, user exists. Sign them out to not affect the main auth flow.
+        await auth.signOut();
+    } catch (error: any) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            try {
+                // User doesn't exist, so create them.
+                const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+                const user = userCredential.user;
+
+                // Now create the user document in Firestore
+                const userDocRef = doc(firestore, 'users', user.uid);
+                await setDoc(userDocRef, {
+                    id: user.uid,
+                    firstName: 'Modou',
+                    lastName: 'Sall',
+                    email: adminEmail,
+                    phoneNumber: adminAlias,
+                    alias: adminAlias,
+                    role: 'superadmin',
+                    isSuspended: false,
+                    balance: 1000000,
+                });
+                console.log("Superadmin account created in Firebase Auth and Firestore.");
+                 // Also sign out after creation to let the user log in manually
+                await auth.signOut();
+            } catch (creationError) {
+                console.error("Failed to create superadmin:", creationError);
+            }
+        }
     }
 };
+
 
 const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => {
   // This is a bit of a hack since we can't easily get the admin's addTransaction function here.
@@ -138,66 +169,80 @@ const getDashboardStepForRole = (role: UserInfo['role']): AppStep => {
 
 function AuthWrapper() {
     const { user, isUserLoading } = useUser();
-    const [step, setStep] = useState<AppStep>('demo');
+    const [step, setStep] = useState<AppStep>(isUserLoading ? 'demo' : 'login'); // Start at demo/login
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-    const [alias, setAlias] = useState<string | null>(null);
     const { toast } = useToast();
     const auth = useAuth();
+    const firestore = useFirestore();
 
     useEffect(() => {
-        ensureSuperAdminExists();
+        if(auth && firestore) {
+           ensureSuperAdminExists(auth, firestore);
+        }
+    }, [auth, firestore]);
 
-        if (isUserLoading) return; // Wait until user status is resolved
+
+    useEffect(() => {
+        if (isUserLoading) {
+            setStep('demo'); // Show demo while checking auth state
+            return;
+        }
 
         if (user) {
-            const userAlias = user.phoneNumber || user.email; // Use phone number or email as alias
-            if(userAlias) {
-                 const userDataString = localStorage.getItem(`midi_user_${userAlias}`);
-                 if (userDataString) {
-                    const userData = JSON.parse(userDataString);
-                     if(userData.isSuspended){
+            const userDocRef = doc(firestore, 'users', user.uid);
+            getDoc(userDocRef).then(docSnap => {
+                if (docSnap.exists()) {
+                    const userData = docSnap.data() as Omit<UserInfo, 'id' | 'alias'> & { role: UserInfo['role'], phoneNumber: string, isSuspended: boolean };
+                    if(userData.isSuspended){
                         toast({
                             title: "Compte Suspendu",
                             description: "Votre compte a été suspendu. Veuillez contacter le support.",
                             variant: "destructive",
                         });
-                        auth.signOut(); // Sign out suspended user
-                        setStep('demo');
+                        auth.signOut();
+                        setStep('login');
+                        setUserInfo(null);
                         return;
                     }
-                    const userRole = userData.role || 'user';
-                    setUserInfo({ name: userData.name, email: userData.email, role: userRole });
-                    setAlias(userAlias);
-                    setStep(getDashboardStepForRole(userRole));
-                 } else {
-                    // This case can happen if user exists in Firebase Auth but not in our localStorage user management system.
+
+                    setUserInfo({
+                        id: user.uid,
+                        firstName: userData.firstName,
+                        lastName: userData.lastName,
+                        email: user.email || '',
+                        role: userData.role,
+                        alias: userData.phoneNumber,
+                    });
+                    setStep(getDashboardStepForRole(userData.role));
+                } else {
+                    // This case can happen if user exists in Firebase Auth but not in our DB.
                     // For this prototype, we'll log out the user.
+                    console.error("User document not found in Firestore for authenticated user.");
                     auth.signOut();
-                    setStep('demo');
-                 }
-            } else {
-                 auth.signOut();
-                 setStep('demo');
-            }
+                    setStep('login');
+                    setUserInfo(null);
+                }
+            });
         } else {
             // No user is signed in
             setStep('demo');
             setUserInfo(null);
-            setAlias(null);
         }
-    }, [user, isUserLoading, auth, toast]);
+    }, [user, isUserLoading, auth, firestore, toast]);
 
     const handleAliasCreated = (newAlias: string) => {
-        localStorage.setItem('midi_active_alias_creation', newAlias);
+        // Store temporarily for the next steps of onboarding
+        sessionStorage.setItem('midi_onboarding_alias', newAlias);
         setStep('kyc');
     };
 
-    const handleKycComplete = (info: Omit<UserInfo, 'role'>) => {
-        const aliasForKyc = localStorage.getItem('midi_active_alias_creation');
+    const handleKycComplete = (info: Omit<UserInfo, 'id' | 'role' | 'alias'>) => {
+        const aliasForKyc = sessionStorage.getItem('midi_onboarding_alias');
         if (aliasForKyc) {
-            localStorage.setItem(`midi_temp_user_info`, JSON.stringify({
+            sessionStorage.setItem(`midi_onboarding_user_info`, JSON.stringify({
                 alias: aliasForKyc,
-                name: info.name,
+                firstName: info.firstName,
+                lastName: info.lastName,
                 email: info.email,
             }));
             setStep('pin_creation');
@@ -208,34 +253,34 @@ function AuthWrapper() {
     };
   
     const handlePinCreated = async (pin: string) => {
-        const tempUserInfoString = localStorage.getItem('midi_temp_user_info');
+        const tempUserInfoString = sessionStorage.getItem('midi_onboarding_user_info');
         
-        if (tempUserInfoString && auth) {
+        if (tempUserInfoString && auth && firestore) {
             const tempInfo = JSON.parse(tempUserInfoString);
-            const aliasForPin = tempInfo.alias;
-            const email = tempInfo.email;
-            
-            // For this demo, PIN will be used as the password. In a real app, use a more secure password.
             const password = `${pin}${pin}`;
 
             try {
                 // Create user in Firebase Auth
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-
-                // If successful, create user in our localStorage system
-                const newUser = {
-                    name: tempInfo.name,
-                    email: email,
-                    pincode: pin, // Storing for simulated login, not for Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, tempInfo.email, password);
+                const newUser = userCredential.user;
+                
+                // Create user document in Firestore
+                const userDocRef = doc(firestore, 'users', newUser.uid);
+                await setDoc(userDocRef, {
+                    id: newUser.uid,
+                    firstName: tempInfo.firstName,
+                    lastName: tempInfo.lastName,
+                    email: tempInfo.email,
+                    phoneNumber: tempInfo.alias,
+                    alias: tempInfo.alias, // Using phone number as alias for login
                     role: 'user',
-                };
-                localStorage.setItem(`midi_user_${aliasForPin}`, JSON.stringify(newUser));
-                localStorage.setItem(`midi_onboarded_${aliasForPin}`, 'true');
-                localStorage.setItem(`midi_balance_${aliasForPin}`, '0');
+                    isSuspended: false,
+                    balance: 0,
+                });
 
                 // Clean up
-                localStorage.removeItem('midi_active_alias_creation');
-                localStorage.removeItem('midi_temp_user_info');
+                sessionStorage.removeItem('midi_onboarding_alias');
+                sessionStorage.removeItem('midi_onboarding_user_info');
                 
                 // The useEffect will handle setting the user state from the new auth state
                 toast({ title: "Compte créé avec succès !", description: "Bienvenue sur Midi." });
@@ -243,7 +288,7 @@ function AuthWrapper() {
             } catch(error: any) {
                  toast({
                     title: "Erreur d'inscription",
-                    description: error.message || "Impossible de créer le compte Firebase. L'email est peut-être déjà utilisé.",
+                    description: error.message || "Impossible de créer le compte. L'email est peut-être déjà utilisé.",
                     variant: "destructive",
                 });
                 setStep('alias'); // Go back to alias creation
@@ -260,55 +305,61 @@ function AuthWrapper() {
   
     const handleLogout = () => {
         auth.signOut();
-        // The useEffect hook will handle resetting state
         toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
     }
 
     const handleLogin = (loginAlias: string, pin: string) => {
-        const userDataString = localStorage.getItem(`midi_user_${loginAlias}`);
-      
-        if (userDataString && auth) {
-            const userData = JSON.parse(userDataString);
+        if (!firestore) return;
+        const password = `${pin}${pin}`;
+        
+        // Query firestore for a user with the matching alias (phoneNumber)
+        const usersRef = collection(firestore, 'users');
+        const q = query(usersRef, where("phoneNumber", "==", loginAlias));
+
+        getDocs(q).then(querySnapshot => {
+            if (querySnapshot.empty) {
+                toast({ title: "Alias non trouvé", variant: "destructive" });
+                return;
+            }
+
+            const userDoc = querySnapshot.docs[0];
+            const userData = userDoc.data();
 
             if (userData.isSuspended) {
                 toast({ title: "Compte Suspendu", variant: "destructive" });
                 return;
             }
 
-            if (userData.pincode !== pin) {
-                toast({ title: "Code PIN incorrect", variant: "destructive" });
-                return;
-            }
-
-            const password = `${pin}${pin}`;
-            
+            // We don't check pincode here anymore, we let Firebase Auth do it.
             signInWithEmailAndPassword(auth, userData.email, password)
                 .then((userCredential) => {
                     // Login successful, the useEffect hook will handle the rest.
-                    toast({ title: `Bienvenue, ${userData.name} !` });
+                    toast({ title: `Bienvenue, ${userData.firstName} !` });
                 })
                 .catch((error) => {
+                    console.error("Firebase sign-in error:", error);
                     toast({
                         title: "Erreur de Connexion Firebase",
                         description: "Impossible de se connecter. Veuillez réessayer.",
                         variant: "destructive",
                     });
                 });
-        } else {
-            toast({ title: "Alias non trouvé", variant: "destructive" });
-        }
+        }).catch(error => {
+             console.error("Error fetching user for login:", error);
+             toast({ title: "Erreur de base de données", variant: "destructive" });
+        });
     }
   
     const renderContent = () => {
-        if (isUserLoading) {
+        if (isUserLoading || (user && !userInfo)) {
             return <div className="flex h-screen items-center justify-center">Chargement...</div>;
         }
 
-        if (alias && userInfo && user) {
+        if (userInfo && user) {
             return (
-                <AppProviders alias={alias}>
-                    {step === 'dashboard' && <Dashboard alias={alias} userInfo={userInfo} onLogout={handleLogout} />}
-                    {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={alias} onLogout={handleLogout} />}
+                <AppProviders alias={userInfo.alias}>
+                    {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
+                    {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
                     {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
                 </AppProviders>
             )
@@ -343,5 +394,3 @@ export default function AuthenticationGate() {
         </FirebaseClientProvider>
     );
 }
-
-    
