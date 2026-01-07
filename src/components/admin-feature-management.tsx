@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -54,9 +55,6 @@ export default function AdminFeatureManagement({ allUsers }: { allUsers: Managed
 
     allUsers.forEach(user => {
         mainBalance += user.balance || 0;
-        // The following details would need to be fetched for each user, which is inefficient.
-        // For this dashboard, we'll use placeholder calculations.
-        // In a real app, this data would come from aggregated backend queries.
         vaults += (user as any).vaults?.reduce((sum: number, v: any) => sum + v.balance, 0) || 0;
         virtualCards += (user as any).virtualCard?.balance ?? 0;
         tontine += (user as any).tontines?.reduce((sum: number, t: any) => sum + t.amount * t.participants.length, 0) || 0;

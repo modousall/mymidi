@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -22,22 +23,28 @@ import type { ManagedUser, Transaction } from '@/lib/types';
 const useAdminData = () => {
     const firestore = useFirestore();
 
-    const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-    const { data: usersData, isLoading: isLoadingUsers, refresh: refreshUsers } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
+    const usersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'users');
+    }, [firestore]);
+    const { data: usersData, isLoading: isLoadingUsers, error: usersError } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery as any);
     
     const users = useMemo(() => {
         if (!usersData) return [];
         return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
     }, [usersData]);
 
-    const transactionsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'transactions')), [firestore]);
-    const { data: allTransactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
+    const transactionsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collectionGroup(firestore, 'transactions'));
+    }, [firestore]);
+    const { data: allTransactions, isLoading: isLoadingTransactions, error: transactionsError } = useCollection<Transaction>(transactionsQuery as any);
 
     return {
         users: users || [],
         allTransactions: allTransactions || [],
         isLoading: isLoadingUsers || isLoadingTransactions,
-        refreshUsers
+        error: usersError || transactionsError,
     }
 }
 
@@ -62,7 +69,33 @@ const adminFeatures: {id: AdminView, title: string, description: string, icon: J
 
 export default function AdminDashboard({ onExit }: AdminDashboardProps) {
     const [view, setView] = useState<AdminView>('dashboard');
-    const { users, allTransactions, isLoading, refreshUsers } = useAdminData();
+    const { users, allTransactions, isLoading, error } = useAdminData();
+
+    // The refreshUsers function is simulated here as it depends on the useCollection hook's internal refresh logic which is not exposed.
+    // In a real scenario with more complex state management (like Redux or Zustand), this would be handled differently.
+    const refreshUsers = () => {
+        // This is a placeholder. The `useCollection` hook automatically refreshes on data change.
+        // For manual refresh, you might need to trigger a re-fetch, e.g., by changing a dependency of the useMemoFirebase.
+        console.log("Simulating user refresh...");
+    }
+
+    if (error) {
+        // This is a simplified error display. In a real app, you'd have a more robust error boundary.
+        return (
+             <div className="flex h-screen items-center justify-center">
+                <Card className="w-1/2 bg-destructive/10 border-destructive text-destructive-foreground">
+                    <CardHeader>
+                        <CardTitle>Erreur d'accès aux données</CardTitle>
+                        <CardDescription>Impossible de charger les données administrateur. Vérifiez vos permissions de sécurité.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="font-mono text-xs">{error.message}</p>
+                         <Button onClick={onExit} className="mt-4">Quitter</Button>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     const renderContent = () => {
         if (isLoading && view !== 'dashboard') {

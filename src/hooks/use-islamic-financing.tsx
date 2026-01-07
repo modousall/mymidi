@@ -9,6 +9,7 @@ import { useBalance } from './use-balance';
 import type { FinancingRequest, IslamicFinancingOutput, IslamicFinancingInput } from '@/lib/types';
 import { useUserManagement } from './use-user-management';
 import { toast } from './use-toast';
+import { useAuth } from '@/firebase';
 
 type SubmitRequestPayload = {
     financingType: string;
@@ -36,10 +37,10 @@ type IslamicFinancingProviderProps = {
 export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingProviderProps) => {
   const [allRequests, setAllRequests] = useState<FinancingRequest[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { addTransaction } = useTransactions();
-  const { credit } = useBalance();
-  const { usersWithTransactions, addTransactionForUser } = useUserManagement();
-
+  const { transactions, addTransaction } = useTransactions();
+  const { balance, credit } = useBalance();
+  const { user } = useAuth();
+  
   useEffect(() => {
     try {
       const storedRequests = localStorage.getItem(financingStorageKey);
@@ -70,12 +71,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
   const submitRequest = async (payload: SubmitRequestPayload, clientAlias?: string): Promise<IslamicFinancingOutput> => {
       const targetAlias = clientAlias || alias;
       
-      const userWithTx = usersWithTransactions.find(u => u.alias === targetAlias);
-      if (!userWithTx) {
-          throw new Error("Impossible de trouver l'utilisateur pour l'évaluation.");
-      }
-      
-      const transactionHistory = userWithTx.transactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
+      const transactionHistory = transactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
 
       const assessmentInput: IslamicFinancingInput = {
         alias: targetAlias,
@@ -83,7 +79,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
         amount: payload.amount,
         durationMonths: payload.durationMonths,
         purpose: payload.purpose,
-        currentBalance: userWithTx.balance,
+        currentBalance: balance,
         transactionHistory,
       }
 
@@ -110,7 +106,6 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
                   counterparty: 'Financement Islamique',
                   reason: `Financement approuvé pour: ${payload.purpose}`,
                   amount: payload.amount,
-                  date: new Date().toISOString(),
                   status: 'Terminé'
               });
           } else {
@@ -128,36 +123,9 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
         return;
       }
       
-      const wasInReview = requestToUpdate.status === 'review';
-
       setAllRequests(prev => prev.map(req => req.id === id ? { ...req, status } : req));
       
-       if (wasInReview && status === 'approved') {
-          try {
-            const userToCredit = usersWithTransactions.find(u => u.alias === requestToUpdate.alias);
-             if (!userToCredit) {
-                throw new Error("Utilisateur introuvable pour la transaction de financement.");
-            }
-            
-            addTransactionForUser(userToCredit.alias, {
-                type: 'received',
-                counterparty: 'Financement Interne',
-                reason: `Financement approuvé pour: ${requestToUpdate.purpose}`,
-                amount: requestToUpdate.amount,
-                date: new Date().toISOString(),
-                status: 'Terminé'
-            }, 'credit');
-
-            toast({ title: "Demande approuvée", description: `Le solde de ${requestToUpdate.alias} a été crédité.` });
-
-          } catch (error: any) {
-              console.error("Failed to process manual financing approval:", error);
-              toast({ title: "Erreur de traitement", description: error.message || "Une erreur est survenue lors de l'approbation.", variant: "destructive" });
-              setAllRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'review' } : req));
-          }
-      } else {
-         toast({ title: `Demande ${status === 'approved' ? 'approuvée' : 'rejetée'}`, description: `La demande de financement de ${requestToUpdate.alias} a été mise à jour.`})
-      }
+      toast({ title: `Demande ${status === 'approved' ? 'approuvée' : 'rejetée'}`, description: `La demande de financement de ${requestToUpdate.alias} a été mise à jour.`})
   }
   
   const value = { allRequests, myRequests, submitRequest, updateRequestStatus };

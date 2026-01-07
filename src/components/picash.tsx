@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -18,6 +19,7 @@ import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from 'firebase/firestore';
+import type { ManagedUser } from '@/lib/types';
 
 
 const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
@@ -42,12 +44,12 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [operationDetails, setOperationDetails] = useState<{amount: number, client: any} | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannedClient, setScannedClient] = useState<any | null>(null);
+  const [scannedClient, setScannedClient] = useState<ManagedUser | null>(null);
   const { toast } = useToast();
   
   const firestore = useFirestore();
   const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: users, isLoading: isLoadingUsers } = useCollection(usersCollection);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<ManagedUser>(usersCollection);
   
   const form = useForm<PicashFormValues>({
     resolver: zodResolver(picashFormSchema),

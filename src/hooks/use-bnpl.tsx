@@ -10,6 +10,7 @@ import type { BnplRequest, BnplAssessmentOutput, BnplAssessmentInput } from '@/l
 import { formatCurrency } from '@/lib/utils';
 import { useUserManagement } from './use-user-management';
 import { toast } from './use-toast';
+import { useAuth } from '@/firebase';
 
 type SubmitRequestPayload = {
     merchantAlias: string;
@@ -49,8 +50,8 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { transactions, addTransaction } = useTransactions();
   const { balance, debit, credit } = useBalance();
-  const { users, usersWithTransactions, addTransactionForUser } = useUserManagement();
-
+  const { user } = useAuth();
+  
   useEffect(() => {
     try {
       const storedRequests = localStorage.getItem(bnplStorageKey);
@@ -106,12 +107,9 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
 
   const submitRequest = async (payload: SubmitRequestPayload, clientAlias?: string): Promise<BnplAssessmentOutput> => {
       const targetAlias = clientAlias || alias;
-      
-      const user = users.find(u => u.alias === targetAlias);
-      const userWithTx = usersWithTransactions.find(u => u.alias === targetAlias);
-      
-      const userBalance = user ? user.balance : balance;
-      const userTransactions = userWithTx ? userWithTx.transactions : transactions;
+
+      const userBalance = balance;
+      const userTransactions = transactions;
 
 
       const transactionHistory = userTransactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
@@ -155,30 +153,24 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
                   counterparty: payload.merchantAlias,
                   reason: `Avance pour achat BNPL`,
                   amount: payload.downPayment,
-                  date: new Date().toISOString(),
                   status: 'Terminé'
                 });
               }
-              // This part simulates the transaction flow for an auto-approved request
-              // 1. Credit the user with the financed amount (as if from a loan account)
               credit(financedAmount);
               addTransaction({
                   type: 'received',
                   counterparty: 'Credit Marchands',
                   reason: `Crédit approuvé pour achat chez ${payload.merchantAlias}`,
                   amount: financedAmount,
-                  date: new Date().toISOString(),
                   status: 'Terminé'
               });
               
-              // 2. Immediately debit the user to pay the merchant
               debit(financedAmount);
               addTransaction({
                 type: 'sent',
                 counterparty: payload.merchantAlias,
                 reason: `Achat financé par crédit`,
                 amount: financedAmount,
-                date: new Date().toISOString(),
                 status: 'Terminé'
               });
           } else {
@@ -196,60 +188,9 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
         return;
       }
       
-      const wasInReview = requestToUpdate.status === 'review';
-
       setAllRequests(prev => prev.map(req => req.id === id ? { ...req, status } : req));
       
-      if (wasInReview && status === 'approved') {
-        try {
-            const userToCredit = users.find(u => u.alias === requestToUpdate.alias);
-            const merchantToPay = users.find(u => u.alias === requestToUpdate.merchantAlias);
-            
-            if (!userToCredit || !merchantToPay) {
-                throw new Error("Utilisateur ou marchand introuvable pour la transaction BNPL.");
-            }
-            
-            // 1. Credit the user with the loan, then debit to pay the merchant.
-             addTransactionForUser(userToCredit.alias, {
-                type: 'received',
-                counterparty: 'Credit Marchands',
-                reason: `Crédit approuvé pour ${merchantToPay.name}`,
-                amount: requestToUpdate.amount,
-                date: new Date().toISOString(),
-                status: 'Terminé'
-            }, 'credit');
-
-            addTransactionForUser(userToCredit.alias, {
-                type: 'sent',
-                counterparty: merchantToPay.alias,
-                reason: `Achat chez ${merchantToPay.name}`,
-                amount: requestToUpdate.amount,
-                date: new Date().toISOString(),
-                status: 'Terminé'
-            }, 'debit');
-
-            // 2. Credit the merchant for the sale
-            addTransactionForUser(merchantToPay.alias, {
-                type: 'received',
-                counterparty: userToCredit.name,
-                reason: 'Vente (paiement par crédit Midi)',
-                amount: requestToUpdate.amount,
-                date: new Date().toISOString(),
-                status: 'Terminé'
-            }, 'credit');
-            
-            toast({ title: "Demande approuvée", description: `Le marchand ${requestToUpdate.merchantAlias} a été crédité et la dette de l'utilisateur a été enregistrée.` });
-
-        } catch (error: any) {
-            console.error("Failed to process manual BNPL approval:", error);
-            toast({ title: "Erreur de traitement", description: error.message || "Une erreur est survenue lors de l'approbation.", variant: "destructive" });
-            // Revert status on error
-            setAllRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'review' } : req));
-        }
-
-      } else {
-         toast({ title: `Demande ${status === 'approved' ? 'approuvée' : 'rejetée'}`, description: `La demande de ${requestToUpdate.alias} a été mise à jour.`})
-      }
+      toast({ title: `Demande ${status === 'approved' ? 'approuvée' : 'rejetée'}`, description: `La demande de ${requestToUpdate.alias} a été mise à jour.`})
   }
 
   const repayCredit = (repaymentAmount: number) => {
@@ -285,7 +226,6 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
         counterparty: 'Credit Marchands',
         reason: 'Remboursement',
         amount: repaymentAmount,
-        date: new Date().toISOString(),
         status: 'Terminé'
     });
     
