@@ -6,20 +6,14 @@
  * - assessBnplApplication - A function that handles the BNPL assessment process.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { geminiModel } from '@/ai/gemini';
 import { BnplAssessmentInputSchema, BnplAssessmentOutputSchema, type BnplAssessmentInput, type BnplAssessmentOutput } from '@/lib/types';
 
 
 export async function assessBnplApplication(
   input: BnplAssessmentInput
 ): Promise<BnplAssessmentOutput> {
-  const prompt = ai.definePrompt({
-    name: 'bnplAssessmentPrompt',
-    input: { schema: BnplAssessmentInputSchema },
-    output: { schema: BnplAssessmentOutputSchema },
-    model: 'gemini-1.5-flash',
-    prompt: `Vous êtes un expert en évaluation de crédit pour un service financier en Afrique de l'Ouest, agissant comme un moteur de décision automatisé.
+  const prompt = `Vous êtes un expert en évaluation de crédit pour un service financier en Afrique de l'Ouest, agissant comme un moteur de décision automatisé.
 Analysez la demande de "Credit Marchands" (BNPL) suivante.
 
 **Processus d'Analyse Automatisée & Score-360:**
@@ -57,29 +51,28 @@ Analysez la demande de "Credit Marchands" (BNPL) suivante.
 4.  **Plan de Remboursement** : Si le statut est 'approved', calculez et fournissez le plan de remboursement.
 
 **Informations sur le demandeur :**
-Alias: {{{alias}}}
-Montant de l'achat : {{{purchaseAmount}}} Fcfa
-Avance versée : {{#if downPayment}}{{{downPayment}}} Fcfa{{else}}0 Fcfa{{/if}}
-Solde actuel : {{{currentBalance}}} Fcfa
-Nombre d'échéances: {{{installmentsCount}}}
-Périodicité de remboursement: {{{repaymentFrequency}}}
-Date de première échéance: {{{firstInstallmentDate}}}
-Taux de marge: {{{marginRate}}}% par période
+Alias: ${input.alias}
+Montant de l'achat : ${input.purchaseAmount} Fcfa
+Avance versée : ${input.downPayment ? `${input.downPayment} Fcfa` : '0 Fcfa'}
+Solde actuel : ${input.currentBalance} Fcfa
+Nombre d'échéances: ${input.installmentsCount}
+Périodicité de remboursement: ${input.repaymentFrequency}
+Date de première échéance: ${input.firstInstallmentDate}
+Taux de marge: ${input.marginRate}% par période
 
-`,
+**Répondez uniquement avec un objet JSON valide conforme au schéma.**
+`;
+
+  const result = await geminiModel.generateContent({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: BnplAssessmentOutputSchema,
+    },
   });
 
-  const bnplAssessmentFlow = ai.defineFlow(
-    {
-      name: 'bnplAssessmentFlow',
-      inputSchema: BnplAssessmentInputSchema,
-      outputSchema: BnplAssessmentOutputSchema,
-    },
-    async (input) => {
-      const { output } = await prompt(input);
-      return output!;
-    }
-  );
+  const text = result.response.text();
+  const parsed = JSON.parse(text);
 
-  return bnplAssessmentFlow(input);
+  return BnplAssessmentOutputSchema.parse(parsed);
 }

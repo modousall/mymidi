@@ -4,70 +4,44 @@
 /**
  * @fileOverview A flow for sending emails.
  *
- * This file defines a Genkit flow for sending emails. It includes a tool
- * that simulates sending an email for development and testing purposes.
+ * This file defines a function for sending emails. It simulates
+ * sending an email for development and testing purposes by logging to the console.
  *
  * - sendEmail - A function to send an email with a specified subject, content, and recipient.
  * - EmailInput - The Zod schema for the sendEmail function's input.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
+import { geminiModel } from '@/ai/gemini';
 
 // Define the schema for the email input
 export const EmailInputSchema = z.object({
-  to: z.string().email().describe('The recipient\'s email address.'),
+  to: z.string().email().describe("The recipient's email address."),
   subject: z.string().describe('The subject of the email.'),
   body: z.string().describe('The HTML or plain text content of the email.'),
 });
 export type EmailInput = z.infer<typeof EmailInputSchema>;
 
-// Define a tool that simulates sending an email by logging to the console
-const sendEmailTool = ai.defineTool(
-  {
-    name: 'sendEmail',
-    description: 'A tool to send an email. For development, this logs the email to the console.',
-    inputSchema: EmailInputSchema,
-    outputSchema: z.object({
-      success: z.boolean(),
-      message: z.string(),
-    }),
-  },
-  async (input) => {
-    console.log('--- SIMULATING EMAIL ---');
-    console.log(`To: ${input.to}`);
-    console.log(`Subject: ${input.subject}`);
-    console.log('Body:');
-    console.log(input.body);
-    console.log('------------------------');
-    return {
-      success: true,
-      message: 'Email successfully simulated and logged to the console.',
-    };
-  }
-);
-
-// Define the main flow for sending emails
-const sendEmailFlow = ai.defineFlow(
-  {
-    name: 'sendEmailFlow',
-    inputSchema: EmailInputSchema,
-    outputSchema: z.object({
-      success: z.boolean(),
-      message: z.string(),
-    }),
-  },
-  async (input) => {
-    const result = await sendEmailTool(input);
-    return result;
-  }
-);
 
 /**
- * Sends an email using the defined Genkit flow.
+ * Simulates sending an email by logging it to the console.
+ * In a real application, this would use an email service like SendGrid, Mailgun, etc.
  * @param {EmailInput} input - The email details (to, subject, body).
  * @returns {Promise<{ success: boolean; message: string; }>} - The result of the send operation.
  */
 export async function sendEmail(input: EmailInput): Promise<{ success: boolean; message: string; }> {
-  return await sendEmailFlow(input);
+  console.log('--- SIMULATING EMAIL ---');
+  console.log(`To: ${input.to}`);
+  console.log(`Subject: ${input.subject}`);
+  console.log('Body:');
+  console.log(input.body);
+  console.log('------------------------');
+  
+  // Here you could add logic to use Gemini to summarize the email or check for spam, for example.
+  // For now, we just return a success message.
+
+  return await Promise.resolve({
+    success: true,
+    message: 'Email successfully simulated and logged to the console.',
+  });
 }

@@ -8,8 +8,8 @@
  * - PaymentSecurityAssistantInput - The input type for the paymentSecurityAssistant function.
  * - PaymentSecurityAssistantOutput - The return type for the paymentSecurityAssistant function.
  */
-import { ai } from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
+import { geminiModel } from '@/ai/gemini';
 
 const PaymentSecurityAssistantInputSchema = z.object({
   recipientAlias: z.string().describe('The alias of the payment recipient.'),
@@ -29,39 +29,33 @@ export type PaymentSecurityAssistantOutput = z.infer<typeof PaymentSecurityAssis
 
 export async function paymentSecurityAssistant(input: PaymentSecurityAssistantInput): Promise<PaymentSecurityAssistantOutput> {
 
-  const prompt = ai.definePrompt({
-    name: 'paymentSecurityAssistantPrompt',
-    input: {schema: PaymentSecurityAssistantInputSchema},
-    output: {schema: PaymentSecurityAssistantOutputSchema},
-    model: 'gemini-1.5-flash',
-    prompt: `Vous êtes un assistant de sécurité des paiements intelligent. Votre rôle est d'analyser les détails d'une transaction de paiement et de fournir des suggestions de sécurité à l'utilisateur pour l'aider à éviter les escroqueries ou les paiements incorrects.
+  const prompt = `Vous êtes un assistant de sécurité des paiements intelligent. Votre rôle est d'analyser les détails d'une transaction de paiement et de fournir des suggestions de sécurité à l'utilisateur pour l'aider à éviter les escroqueries ou les paiements incorrects.
 
 Analysez les détails du destinataire et de la transaction suivants:
 
-Alias du destinataire: {{{recipientAlias}}}
-Détails du compte du destinataire: {{{recipientAccountDetails}}}
-Montant: {{{amount}}}
-Type de transaction: {{{transactionType}}}
+Alias du destinataire: ${input.recipientAlias}
+Détails du compte du destinataire: ${input.recipientAccountDetails}
+Montant: ${input.amount}
+Type de transaction: ${input.transactionType}
 
 Fournissez une liste de suggestions de sécurité à l'utilisateur. Ces suggestions doivent inclure des avertissements sur les escroqueries potentielles, des vérifications d'informations incorrectes et tout autre conseil de sécurité pertinent. De plus, en fonction des détails fournis, déterminez si la transaction présente un risque élevé et définissez le champ "isHighRisk" en conséquence.
 
 Tenez compte de facteurs tels que l'alias du destinataire, les détails du compte, le montant de la transaction et le type de transaction lors de la génération de vos suggestions.
 Si l'alias du destinataire ressemble à un numéro de téléphone ou à une adresse e-mail qui n'est pas dans un format standard, avertissez l'utilisateur.
 Si le destinataire est "Nouveau" ou n'est pas dans la liste de contacts, avertissez l'utilisateur de vérifier qu'il connaît le destinataire et que l'alias est correct.
-`,
+
+La sortie doit être un objet JSON valide avec les clés "securitySuggestions" (un tableau de chaînes) et "isHighRisk" (un booléen).
+`;
+  
+  const result = await geminiModel.generateContent({
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+    },
   });
 
-  const paymentSecurityAssistantFlow = ai.defineFlow(
-    {
-      name: 'paymentSecurityAssistantFlow',
-      inputSchema: PaymentSecurityAssistantInputSchema,
-      outputSchema: PaymentSecurityAssistantOutputSchema,
-    },
-    async input => {
-      const {output} = await prompt(input);
-      return output!;
-    }
-  );
-  
-  return paymentSecurityAssistantFlow(input);
+  const text = result.response.text();
+  const parsed = JSON.parse(text);
+
+  return PaymentSecurityAssistantOutputSchema.parse(parsed);
 }

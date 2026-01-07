@@ -6,18 +6,13 @@
  * - islamicFinancingAssessment - a function that handles the financing assessment process.
  */
 
-import { ai } from '@/ai/genkit';
+import { geminiModel } from '@/ai/gemini';
 import { IslamicFinancingInputSchema, IslamicFinancingOutputSchema, type IslamicFinancingInput, type IslamicFinancingOutput } from '@/lib/types';
 
 export async function islamicFinancingAssessment(
   input: IslamicFinancingInput
 ): Promise<IslamicFinancingOutput> {
-  const prompt = ai.definePrompt({
-    name: 'islamicFinancingAssessmentPrompt',
-    input: { schema: IslamicFinancingInputSchema },
-    output: { schema: IslamicFinancingOutputSchema },
-    model: 'gemini-1.5-flash',
-    prompt: `Vous êtes un expert en financement islamique (Mourabaha), agissant comme un moteur de décision automatisé.
+  const prompt = `Vous êtes un expert en financement islamique (Mourabaha), agissant comme un moteur de décision automatisé.
 Analysez la demande de financement suivante.
 
 **Processus d'Analyse Automatisée & Score-360:**
@@ -53,27 +48,26 @@ Analysez la demande de financement suivante.
 4.  **Plan de Remboursement** : Si le statut est 'approved', calculez le plan de remboursement avec un taux de profit annuel de 23.5%.
 
 **Informations sur le demandeur :**
-Alias: {{{alias}}}
-Montant du financement demandé : {{{amount}}} F
-Type de financement: {{{financingType}}}
-Durée : {{{durationMonths}}} mois
-Objet du financement: {{{purpose}}}
-Solde actuel : {{{currentBalance}}} F
+Alias: ${input.alias}
+Montant du financement demandé : ${input.amount} F
+Type de financement: ${input.financingType}
+Durée : ${input.durationMonths} mois
+Objet du financement: ${input.purpose}
+Solde actuel : ${input.currentBalance} F
 
-`,
-  });
+**Répondez uniquement avec un objet JSON valide conforme au schéma.**
+`;
 
-  const financingFlow = ai.defineFlow(
-    {
-      name: 'islamicFinancingAssessmentFlow',
-      inputSchema: IslamicFinancingInputSchema,
-      outputSchema: IslamicFinancingOutputSchema,
-    },
-    async (input) => {
-      const { output } = await prompt(input);
-      return output!;
-    }
-  );
+    const result = await geminiModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+            responseMimeType: 'application/json',
+            responseSchema: IslamicFinancingOutputSchema,
+        },
+    });
 
-  return financingFlow(input);
+    const text = result.response.text();
+    const parsed = JSON.parse(text);
+
+    return IslamicFinancingOutputSchema.parse(parsed);
 }
