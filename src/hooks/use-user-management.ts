@@ -1,8 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, createContext, useContext, ReactNode } from 'react';
-import { toast } from './use-toast';
+import React, { createContext, useContext, ReactNode } from 'react';
 
 export type ManagedUser = {
   id: string;
@@ -17,6 +16,9 @@ export type ManagedUser = {
   avatar: string | null;
   isSuspended: boolean;
   role: string;
+  brandName?: string;
+  ninea?: string;
+  rccm?: string;
 };
 
 type UserManagementContextType = {
@@ -24,27 +26,7 @@ type UserManagementContextType = {
     changeUserPin: (alias: string, oldPin: string, newPin:string) => {success: boolean, message: string};
 }
 
-const UserManagementContext = createContext<UserManagementContextType | undefined>(undefined);
-
-export const UserManagementProvider = ({ allUsers, children }: { allUsers: ManagedUser[], children: ReactNode }) => {
-
-    const changeUserPin = (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
-       toast({ title: "Non implémenté", description: "La modification du PIN doit être gérée avec les fonctions Firebase Auth.", variant: "destructive" });
-       return {success: false, message: "Non implémenté"};
-   }
-
-    const value = {
-        users: allUsers,
-        changeUserPin,
-    };
-
-    return (
-        <UserManagementContext.Provider value={value}>
-            {children}
-        </UserManagementContext.Provider>
-    );
-};
-
+export const UserManagementContext = createContext<UserManagementContextType | undefined>(undefined);
 
 export const useUserManagement = () => {
   const context = useContext(UserManagementContext);

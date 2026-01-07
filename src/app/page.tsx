@@ -26,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { User, Shield, Building } from 'lucide-react';
 import type { ManagedUser, Transaction } from '@/lib/types';
-import { UserManagementProvider } from '@/hooks/use-user-management';
+import { UserManagementContext } from '@/hooks/use-user-management';
 
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
@@ -107,8 +107,17 @@ const allMockTransactions: Transaction[] = [
 
 // A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ userId, alias, children }: { userId: string, alias: string, children: React.ReactNode }) => {
+    
+    const userManagementValue = {
+        users: allMockUsers,
+        changeUserPin: (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
+            console.warn("PIN change is not implemented in simulation mode.");
+            return {success: false, message: "Non implémenté en mode simulation."};
+        }
+    };
+
     return (
-        <UserManagementProvider allUsers={allMockUsers}>
+        <UserManagementContext.Provider value={userManagementValue}>
             <TransactionsProvider forUserId={userId}>
                 <TreasuryProvider>
                     <CmsProvider>
@@ -142,7 +151,7 @@ const AppProviders = ({ userId, alias, children }: { userId: string, alias: stri
                     </CmsProvider>
                 </TreasuryProvider>
             </TransactionsProvider>
-        </UserManagementProvider>
+        </UserManagementContext.Provider>
     )
 }
 
