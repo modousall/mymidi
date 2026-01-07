@@ -14,7 +14,7 @@
  * - User Isolation: A user can only read or write data within their own /users/{userId} document tree, unless they are an admin.
  * - Admin Access: Users with the 'admin' or 'superadmin' role are granted read-only access to all user data for management purposes.
  * - No Public User Enumeration: Listing documents in the top-level /users collection is explicitly disallowed for non-admins
- *   to prevent scraping of user information.
+ *   to prevent scraping of user information, except for a secure phone-based sign-in mechanism.
  * - Public Readability: QR codes are publicly readable to allow scanning by anyone, but write
  *   operations are strictly limited to the user who owns the QR code.
  * - Denormalization for Authorization: Transaction and payment request data is denormalized
@@ -85,9 +85,10 @@ service cloud.firestore {
      * Returns true if the request is a query for a user by their phone number for sign-in purposes.
      * This is a narrow exception to the general rule of not allowing user listing.
      * The key security is that the client query must be strictly limited to the 'phoneNumber' field.
+     * Crucially, it only allows finding users with the 'user' role, preventing admins from logging in via phone.
      */
     function isSigningInByPhone() {
-        return request.method == 'list';
+        return request.method == 'list' && resource.data.role == 'user';
     }
 
 
