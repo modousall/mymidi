@@ -4,7 +4,7 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { Button } from "./ui/button";
-import { ArrowLeft, User, TrendingUp, CreditCard, ShieldCheck, KeyRound, UserX, UserCheck, Ban, Wallet, Settings, Users as TontineIcon, Clock, Briefcase, PiggyBank, Eye, EyeOff, X, Edit, HandCoins, Check } from "lucide-react";
+import { ArrowLeft, User, TrendingUp, CreditCard, ShieldCheck, KeyRound, UserX, UserCheck, Ban, Wallet, Settings, Users as TontineIcon, Clock, Briefcase, PiggyBank, Eye, EyeOff, X, Edit, HandCoins, Check, Building, FileText } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "./ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -23,7 +23,7 @@ import { VaultsProvider } from '@/hooks/use-vaults';
 import { TontineProvider } from '@/hooks/use-tontine';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useBnpl, BnplProvider } from '@/hooks/use-bnpl';
-import type { BnplRequest, BnplStatus } from '@/lib/types';
+import type { BnplRequest, BnplStatus, ManagedUser } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -230,7 +230,7 @@ const MerchantCreditDetails = ({ requests }: { requests: BnplRequest[] }) => (
 )
 
 
-export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any, onBack: () => void, onUpdate: () => void }) {
+export default function AdminUserDetail({ user, onBack, onUpdate }: { user: ManagedUser, onBack: () => void, onUpdate: () => void }) {
     const { toast } = useToast();
     const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -273,9 +273,9 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
     }, [allRequests, user.alias]);
 
 
-    const totalVaultsBalance = useMemo(() => (user.vaults || []).reduce((acc: number, vault: any) => acc + vault.balance, 0), [user.vaults]);
-    const totalTontinesBalance = useMemo(() => (user.tontines || []).reduce((acc: number, tontine: any) => acc + (tontine.amount * tontine.participants.length), 0), [user.tontines]);
-    const virtualCardBalance = useMemo(() => user.virtualCard?.balance ?? 0, [user.virtualCard]);
+    const totalVaultsBalance = useMemo(() => (user as any).vaults?.reduce((acc: number, vault: any) => acc + vault.balance, 0) || 0, [user]);
+    const totalTontinesBalance = useMemo(() => (user as any).tontines?.reduce((acc: number, tontine: any) => acc + (tontine.amount * tontine.participants.length), 0) || 0, [user]);
+    const virtualCardBalance = useMemo(() => (user as any).virtualCard?.balance ?? 0, [user]);
 
     const handleToggleSuspension = () => {
         // toggleUserSuspension(user.alias, !user.isSuspended); // This needs to be reimplemented
@@ -370,6 +370,14 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
                                     <span className="text-muted-foreground">Solde Principal</span>
                                     <span className="font-semibold">{formatCurrency(user.balance)}</span>
                             </div>
+                            {user.role === 'merchant' && (
+                                <>
+                                     <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Marque</span> <span className="font-semibold">{user.brandName || "N/A"}</span></div>
+                                     <div className="flex justify-between"><span className="text-muted-foreground">Code Marchand</span> <span className="font-semibold">{user.merchantCode || "N/A"}</span></div>
+                                     <div className="flex justify-between"><span className="text-muted-foreground">NINEA</span> <span className="font-semibold">{user.ninea || "N/A"}</span></div>
+                                     <div className="flex justify-between"><span className="text-muted-foreground">RCCM</span> <span className="font-semibold">{user.rccm || "N/A"}</span></div>
+                                </>
+                            )}
                             </CardContent>
                         </Card>
                         
@@ -436,3 +444,5 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
         </UserServiceProvider>
     )
 }
+
+    

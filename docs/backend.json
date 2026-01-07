@@ -19,8 +19,8 @@
           "description": "Automatically generated payment address alias."
         },
         "merchantCode": {
-            "type": "string",
-            "description": "A user-defined public code for merchants, used for receiving payments."
+          "type": "string",
+          "description": "A user-defined public code for merchants, used for receiving payments."
         },
         "firstName": {
           "type": "string",
@@ -34,6 +34,18 @@
           "type": "string",
           "description": "User's email address.",
           "format": "email"
+        },
+        "brandName": {
+          "type": "string",
+          "description": "The merchant's brand or commercial name."
+        },
+        "ninea": {
+          "type": "string",
+          "description": "The merchant's NINEA number (Numéro d'Identification National des Entreprises et des Associations)."
+        },
+        "rccm": {
+          "type": "string",
+          "description": "The merchant's RCCM number (Registre du Commerce et du Crédit Mobilier)."
         },
         "qrCodeId": {
           "type": "string",
@@ -277,4 +289,5 @@
     "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, following the core design principles and strategy mandates outlined in the prompt. The design emphasizes authorization independence through denormalization and structural segregation for a homogeneous security posture. Transactions and Payment Requests are stored under the respective users involved to leverage path-based ownership. QR Codes are stored separately and referenced by user ID. This structure prioritizes secure 'list' operations, clear ownership, and avoids hierarchical authorization dependencies, simplifying security rules and ensuring data integrity.\n\nAuthorization Independence is achieved by storing transaction and payment request data directly under the users involved (sender/receiver, requester/payer), eliminating the need for `get()` calls to determine ownership or authorization. Each transaction document is self-contained with all relevant information. The structure also supports the required QAPs by segregating data based on ownership (path-based ownership) and using collections to manage user data.\n"
   }
 }
+
     
