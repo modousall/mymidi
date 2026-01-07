@@ -17,22 +17,29 @@ export async function islamicFinancingAssessment(
     input: { schema: IslamicFinancingInputSchema },
     output: { schema: IslamicFinancingOutputSchema },
     model: 'googleai/gemini-1.5-flash-latest',
-    prompt: `Vous êtes un expert en financement islamique (Mourabaha).
-Analysez la demande de financement suivante et décidez si elle doit être approuvée, rejetée, ou mise en attente d'un examen manuel.
+    prompt: `Vous êtes un expert en financement islamique (Mourabaha), agissant comme un moteur de décision automatisé.
+Analysez la demande de financement suivante et décidez si elle doit être approuvée automatiquement, rejetée automatiquement, ou mise en attente pour un examen par un comité.
 
-Critères d'évaluation :
-1.  **Montant du financement** : Soyez prudent avec les montants très élevés (ex: > 500 000 F).
-2.  **Objet du financement** : Les biens de consommation durables (voiture, équipement) sont préférables. Les projets d'entreprise sont bons s'ils sont bien décrits.
-3.  **Historique des transactions** : Un utilisateur avec un historique de transactions régulier et des revenus (received) est un bon candidat.
-4.  **Solde actuel** : Un solde actuel très bas peut indiquer un risque.
-5.  **Durée** : Une durée plus courte est moins risquée.
+**Processus d'Analyse Automatisée :**
 
-Règles de décision :
-- **Approuver** : Pour les montants raisonnables (< 300 000 F) avec un bon historique de transactions et un objet clair.
-- **Rejeter** : Pour les nouveaux utilisateurs sans historique ou pour des montants excessifs.
-- **Mettre en examen (review)** : Pour les cas limites, comme un montant élevé mais un bon historique, ou un but de financement flou.
+1.  **Analyse des flux de compte (Transaction History)** : Évaluez la régularité et le volume des revenus. Un historique de transactions soutenu est un indicateur clé de la capacité de remboursement.
+2.  **Exposition Globale (Current Balance & Amount)** : Comparez le montant demandé au solde actuel et à l'historique des flux. Un montant élevé (ex: > 500 000 F) nécessite un dossier très solide.
+3.  **Analyse de l'Objet du Financement (Purpose)** : Les biens de consommation durables (voiture, équipement) ou les projets d'entreprise bien décrits sont des objets de financement solides. Un objet vague ou non tangible augmente le risque.
+4.  **Score Socio-Professionnel (Score-SP) - Simulation** : (Pour cette simulation, basez-vous sur la clarté de l'objet du financement). Un projet clair et détaillé est un indicateur positif.
 
-Informations sur le demandeur :
+**Règles de Décision :**
+
+- **approbation automatique (approved)** : Pour les montants raisonnables (< 300 000 F) avec un bon historique de transactions et un objet de financement clair.
+- **rejet automatique (rejected)** : Pour les nouveaux utilisateurs sans historique, des montants excessifs, ou un objet de financement non conforme ou flou.
+- **examen par comité (review)** : Pour les cas limites, comme un montant élevé mais un bon historique, ou un utilisateur avec un historique moyen demandant un montant significatif.
+
+**Output Requis :**
+
+1.  **Statut** : 'approved', 'rejected', ou 'review'.
+2.  **Raison (Justification)** : Fournissez une raison claire, concise et structurée qui servira de base pour le Procès-Verbal (PV) de la décision. Commencez par la conclusion, puis listez les points clés de l'analyse. Par exemple : "Statut 'review' car le montant est élevé. L'analyse des flux est positive, mais l'objet du financement nécessite plus de détails."
+3.  **Plan de Remboursement** : Si le statut est 'approved', calculez le plan de remboursement avec un taux de profit annuel de 23.5%.
+
+**Informations sur le demandeur :**
 Alias: {{{alias}}}
 Montant du financement demandé : {{{amount}}} F
 Type de financement: {{{financingType}}}
@@ -40,14 +47,6 @@ Durée : {{{durationMonths}}} mois
 Objet du financement: {{{purpose}}}
 Solde actuel : {{{currentBalance}}} F
 
-Calcul du plan de remboursement (si approuvé) :
-Le taux de profit annuel est de 23.5%.
-1. Calculez le **profit total** : Montant du financement * (23.5 / 100) * (Durée en mois / 12).
-2. Calculez le **montant total à rembourser** : Montant du financement + Profit total.
-3. Calculez le **montant par échéance mensuelle** : Montant total à rembourser / Durée en mois. Arrondir au chiffre supérieur.
-4. Formulez le plan de remboursement : "{{{durationMonths}}} versements de [Montant par échéance] F".
-
-Fournissez un statut ('approved', 'rejected', 'review'), une raison claire et concise pour votre décision, et si approuvé, le plan de remboursement calculé.
 `,
   });
 

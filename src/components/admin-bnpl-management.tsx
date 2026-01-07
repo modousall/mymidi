@@ -22,7 +22,7 @@ import { formatCurrency } from '@/lib/utils';
 const formatDate = (dateString: string) => format(new Date(dateString), 'Pp', { locale: fr });
 
 const statusConfig: Record<BnplStatus, { text: string; badgeVariant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: JSX.Element }> = {
-    'review': { text: "En attente", badgeVariant: "outline", icon: <Hourglass className="h-4 w-4" /> },
+    'review': { text: "Examen Requis", badgeVariant: "outline", icon: <Hourglass className="h-4 w-4" /> },
     'approved': { text: "Approuvée", badgeVariant: "default", icon: <Check className="h-4 w-4" /> },
     'rejected': { text: "Rejetée", badgeVariant: "destructive", icon: <X className="h-4 w-4" /> },
 };
@@ -61,9 +61,9 @@ export default function AdminBnplManagement() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Gestion des Demandes de Crédit Achat</CardTitle>
+                    <CardTitle>Moteur de Décision - Crédit Marchands (BNPL)</CardTitle>
                     <CardDescription>
-                        Examinez, approuvez ou rejetez les demandes de paiement échelonné des utilisateurs. Midi finance le client, qui rembourse Midi.
+                        Examinez les demandes de crédit, approuvez ou rejetez. Les décisions automatiques sont déjà appliquées.
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -77,7 +77,7 @@ export default function AdminBnplManagement() {
                 </Card>
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2"><Hourglass/>Demandes en Attente</CardTitle>
+                        <CardTitle className="text-sm font-medium flex items-center gap-2"><Hourglass/>Demandes pour Comité</CardTitle>
                     </CardHeader>
                     <CardContent><div className="text-2xl font-bold">{kpis.pendingRequests}</div></CardContent>
                 </Card>
@@ -94,7 +94,7 @@ export default function AdminBnplManagement() {
                 <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
-                            <CardTitle>Toutes les demandes</CardTitle>
+                            <CardTitle>Dossiers de Crédit</CardTitle>
                             <CardDescription>
                                 Liste complète de toutes les demandes de crédit.
                             </CardDescription>
@@ -115,10 +115,10 @@ export default function AdminBnplManagement() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Date</TableHead>
-                                <TableHead>Alias Utilisateur</TableHead>
-                                <TableHead>Alias Marchand</TableHead>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Marchand</TableHead>
                                 <TableHead>Montant</TableHead>
-                                <TableHead>Raison IA</TableHead>
+                                <TableHead>Justification Moteur de Décision</TableHead>
                                 <TableHead>Statut</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -136,7 +136,7 @@ export default function AdminBnplManagement() {
                                             </TableCell>
                                             <TableCell>{req.merchantAlias}</TableCell>
                                             <TableCell>{formatCurrency(req.amount)}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">{req.reason}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{req.reason}</TableCell>
                                             <TableCell>
                                                 <Badge variant={statusConfig[req.status].badgeVariant} className="gap-1">
                                                     {statusConfig[req.status].icon} {statusConfig[req.status].text}
@@ -156,7 +156,7 @@ export default function AdminBnplManagement() {
                                             </TableCell>
                                         </TableRow>
                                     </DialogTrigger>
-                                     <DialogContent>
+                                     <DialogContent className="max-w-2xl">
                                         <CreditRequestDetails request={req} />
                                     </DialogContent>
                                 </Dialog>

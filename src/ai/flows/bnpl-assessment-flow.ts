@@ -19,22 +19,35 @@ export async function assessBnplApplication(
     input: { schema: BnplAssessmentInputSchema },
     output: { schema: BnplAssessmentOutputSchema },
     model: 'googleai/gemini-1.5-flash-latest',
-    prompt: `Vous êtes un expert en évaluation de crédit pour un service financier en Afrique de l'Ouest.
-Analysez la demande de "Credit Marchands" (BNPL) suivante et décidez si elle doit être approuvée, rejetée, ou mise en attente d'un examen manuel.
+    prompt: `Vous êtes un expert en évaluation de crédit pour un service financier en Afrique de l'Ouest, agissant comme un moteur de décision automatisé.
+Analysez la demande de "Credit Marchands" (BNPL) suivante et décidez si elle doit être approuvée automatiquement, rejetée automatiquement, ou mise en attente pour un examen par un comité.
 
-Critères d'évaluation :
-1.  **Montant de l'achat** : Si le montant est très élevé (ex: > 150 000 Fcfa), soyez prudent.
-2.  **Avance (Down Payment)**: Une avance significative réduit le risque. Si une avance est versée, le montant à financer est réduit.
-3.  **Historique des transactions** : Un utilisateur avec un historique de transactions régulier et des revenus (received) est un bon candidat. Un utilisateur sans historique est à haut risque.
-4.  **Solde actuel** : Un solde actuel très bas peut indiquer un risque.
-5.  **Conditions du crédit** : Un taux de marge élevé ou une périodicité de remboursement très courte pour un montant élevé peuvent augmenter le risque.
+**Processus d'Analyse Automatisée :**
 
-Règles de décision :
-- **Approuver** : Pour les montants raisonnables (< 100 000 Fcfa) avec un bon historique de transactions et des conditions de crédit standard.
-- **Rejeter** : Pour les nouveaux utilisateurs sans historique ou pour des montants clairement excessifs sans historique pour le justifier.
-- **Mettre en examen (review)** : Pour les cas limites, comme un montant élevé mais un bon historique, ou un utilisateur relativement nouveau avec un montant modéré, ou des conditions de crédit inhabituelles (taux élevé, etc.).
+1.  **Analyse des flux de compte (Transaction History)** :
+    - Évaluez la régularité et le volume des revenus (transactions de type "received"). Un historique positif est un indicateur fort.
+    - Un utilisateur sans historique ou avec des flux très faibles représente un risque élevé.
 
-Informations sur le demandeur :
+2.  **Exposition Globale et Solde (Current Balance & Purchase Amount)** :
+    - Comparez le montant de l'achat au solde actuel. Un solde très bas par rapport à l'achat augmente le risque.
+    - Si le montant de l'achat est très élevé (ex: > 150 000 Fcfa), soyez plus prudent. Une avance (down payment) significative (>20%) réduit ce risque.
+
+3.  **Score Socio-Professionnel (Score-SP) - Simulation** :
+    - (Pour cette simulation, basez ce score sur l'alias) Si l'alias est un simple numéro de téléphone, considérez le score neutre. Si c'est un alias personnalisé, considérez-le comme un léger bonus.
+
+**Règles de Décision :**
+
+- **approbation automatique (approved)** : Pour les montants raisonnables (< 100 000 Fcfa) avec un bon historique de transactions et un risque global faible.
+- **rejet automatique (rejected)** : Pour les nouveaux utilisateurs sans historique, les montants clairement excessifs sans justification, ou un risque global jugé trop élevé.
+- **examen par comité (review)** : Pour les cas limites. Par exemple : montant élevé mais bon historique, utilisateur récent avec un montant modéré, ou des conditions de crédit inhabituelles.
+
+**Output Requis :**
+
+1.  **Statut** : 'approved', 'rejected', ou 'review'.
+2.  **Raison (Justification)** : Fournissez une raison claire, concise et structurée qui servira de base pour le Procès-Verbal (PV) de la décision. Commencez par la conclusion, puis listez les points clés de l'analyse. Par exemple : "Statut 'review' car le montant est élevé malgré un bon historique. Analyse des flux positive. Exposition globale modérée."
+3.  **Plan de Remboursement** : Si le statut est 'approved', calculez et fournissez le plan de remboursement.
+
+**Informations sur le demandeur :**
 Alias: {{{alias}}}
 Montant de l'achat : {{{purchaseAmount}}} Fcfa
 Avance versée : {{#if downPayment}}{{{downPayment}}} Fcfa{{else}}0 Fcfa{{/if}}
@@ -44,13 +57,6 @@ Périodicité de remboursement: {{{repaymentFrequency}}}
 Date de première échéance: {{{firstInstallmentDate}}}
 Taux de marge: {{{marginRate}}}% par période
 
-Calcul du plan de remboursement (si approuvé) :
-1. Calculez le **montant à financer** : Montant de l'achat - Avance versée.
-2. Calculez le **montant par échéance** en utilisant la formule d'amortissement standard : (Montant financé * Taux de marge) / (1 - (1 + Taux de marge)^(-Nombre d'échéances)). Arrondir au chiffre supérieur.
-3. Calculez le **montant total à rembourser** : Montant par échéance * Nombre d'échéances.
-4. Formulez le plan de remboursement : "{{{installmentsCount}}} versements de [Montant par échéance] Fcfa".
-
-Fournissez un statut ('approved', 'rejected', 'review'), une raison claire et concise pour votre décision, et si approuvé, le plan de remboursement calculé.
 `,
   });
 
