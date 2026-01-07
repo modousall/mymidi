@@ -236,15 +236,23 @@ function SimulatedApp() {
             case 'admin':
             case 'superadmin':
             case 'support':
-                // Admin dashboard needs its own set of providers, but not tied to a single account
+                const adminAccount: Account = { accountId: `acc_admin_${userInfo.id}`, type: 'user' };
                  return (
-                    <ProductProvider>
-                        <RoleProvider>
-                            <FeatureFlagProvider>
-                                <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
-                            </FeatureFlagProvider>
-                        </RoleProvider>
-                    </ProductProvider>
+                    <AccountProvider account={adminAccount}>
+                      <TransactionsProvider>
+                        <ProductProvider>
+                            <RoleProvider>
+                                <FeatureFlagProvider>
+                                    <BnplProvider alias="admin_sim_bnpl">
+                                        <IslamicFinancingProvider alias="admin_sim_islamic">
+                                            <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
+                                        </IslamicFinancingProvider>
+                                    </BnplProvider>
+                                </FeatureFlagProvider>
+                            </RoleProvider>
+                        </ProductProvider>
+                      </TransactionsProvider>
+                    </AccountProvider>
                  );
             case 'user':
             default:
