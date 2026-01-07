@@ -400,9 +400,9 @@ function AuthWrapper() {
                                             <BnplProvider alias={userInfo?.alias || ''}>
                                                 <IslamicFinancingProvider alias={userInfo?.alias || ''}>
                                                     <RecurringPaymentsProvider alias={userInfo?.alias || ''}>
-                                                        {view === 'dashboard' && userInfo && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
-                                                        {view === 'merchant_dashboard' && userInfo && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
-                                                        {view === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
+                                                        {step === 'dashboard' && userInfo && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
+                                                        {step === 'merchant_dashboard' && userInfo && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
+                                                        {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
                                                     </RecurringPaymentsProvider>
                                                 </IslamicFinancingProvider>
                                             </BnplProvider>
@@ -457,4 +457,5 @@ export default function AuthenticationGate() {
         </FirebaseClientProvider>
     );
 }
+
 
