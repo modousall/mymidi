@@ -48,7 +48,7 @@ const RoleManagementDialog = ({ user, onClose }: { user: any, onClose: () => voi
              console.log(`Updating role for ${user.alias} to ${selectedRole}`);
             toast({
                 title: "Rôle mis à jour",
-                description: `Le rôle de ${user.name} a été changé en "${selectedRole}".`
+                description: `Le rôle de ${user.firstName} a été changé en "${selectedRole}".`
             });
             onClose();
         }
@@ -59,7 +59,7 @@ const RoleManagementDialog = ({ user, onClose }: { user: any, onClose: () => voi
     return (
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Gérer le rôle de {user.name}</DialogTitle>
+                <DialogTitle>Gérer le rôle de {user.firstName} {user.lastName}</DialogTitle>
                 <DialogDescription>
                     La modification du rôle changera les accès et l'interface de l'utilisateur.
                 </DialogDescription>
@@ -102,7 +102,7 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
         console.log(`Resetting PIN for ${user.alias}`);
         toast({
             title: "Code PIN réinitialisé",
-            description: `Le code PIN pour ${user.name} a été mis à jour.`
+            description: `Le code PIN pour ${user.firstName} a été mis à jour.`
         });
         onClose();
     }
@@ -110,7 +110,7 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
     return (
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Réinitialiser le PIN de {user.name}</DialogTitle>
+                <DialogTitle>Réinitialiser le PIN de {user.firstName} {user.lastName}</DialogTitle>
                 <DialogDescription>
                     Entrez un nouveau code PIN à 4 chiffres pour cet utilisateur. L'utilisateur devra être informé de ce changement.
                 </DialogDescription>
@@ -282,7 +282,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
         console.log(`Toggling suspension for ${user.alias}`);
         toast({
             title: `Utilisateur ${!user.isSuspended ? 'suspendu' : 'réactivé'}`,
-            description: `${user.name} a été ${!user.isSuspended ? 'suspendu' : 'réactivé'}.`
+            description: `${user.firstName} a été ${!user.isSuspended ? 'suspendu' : 'réactivé'}.`
         });
         onUpdate(); 
     }
@@ -297,7 +297,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
             case 'transactions':
                 return <TransactionHistory showAll={true} onShowAll={() => {}} />;
             case 'ma-carte':
-                return <VirtualCard onBack={() => setActiveServiceView('transactions')} cardHolderName={user.name} />;
+                return <VirtualCard onBack={() => setActiveServiceView('transactions')} cardHolderName={`${user.firstName} ${user.lastName}`} />;
             case 'coffres':
                 return <Vaults onBack={() => setActiveServiceView('transactions')} />;
             case 'tontine':
@@ -312,6 +312,8 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
         }
     }
 
+    const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+
 
     return (
          <UserServiceProvider alias={user.alias}>
@@ -322,7 +324,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
                     </Button>
                     <div>
                         <h2 className="text-2xl font-bold">Détail de l'utilisateur</h2>
-                        <p className="text-muted-foreground">Vue d'ensemble du compte de {user.name}</p>
+                        <p className="text-muted-foreground">Vue d'ensemble du compte de {userName}</p>
                     </div>
                 </div>
 
@@ -331,11 +333,11 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
                         <Card>
                             <CardHeader className="flex flex-row items-center gap-4">
                                 <Avatar className="h-16 w-16">
-                                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={user.avatar ?? undefined} alt={userName} />
+                                    <AvatarFallback>{user.firstName?.charAt(0) ?? 'U'}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <CardTitle className="text-xl">{user.name}</CardTitle>
+                                    <CardTitle className="text-xl">{userName}</CardTitle>
                                     <CardDescription>{user.alias}</CardDescription>
                                 </div>
                             </CardHeader>
@@ -415,7 +417,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
                                         {activeServiceView === 'ma-carte' && "Gestion de la Carte Virtuelle"}
                                         {activeServiceView === 'coffres' && "Gestion des Coffres"}
                                         {activeServiceView === 'tontine' && "Gestion des Tontines"}
-                                        {activeServiceView === 'credit-details' && `Crédits Marchands pour ${user.name}`}
+                                        {activeServiceView === 'credit-details' && `Crédits Marchands pour ${userName}`}
                                     </CardTitle>
                                     {activeServiceView !== 'transactions' && (
                                         <Button variant="ghost" size="icon" onClick={() => setActiveServiceView('transactions')}>
