@@ -259,7 +259,7 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
             if (frequency === 'monthly') installmentDate = addMonths(installmentDate, 1);
         }
 
-        return { financedAmount, installmentAmount: isNaN(installmentAmount) ? 0 : installmentAmount, totalCost: isNaN(totalCost) ? 0 : totalCost, schedule };
+        return { financedAmount, installmentAmount: isNaN(installmentAmount) ? 0 : Math.ceil(installmentAmount), totalCost: isNaN(totalCost) ? 0 : totalCost, schedule };
     }
     return { financedAmount: 0, installmentAmount: 0, totalCost: 0, schedule: []};
   }, [watchedType, watchedBnplValues, marginRate]);
@@ -349,7 +349,9 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Alias du Client</FormLabel>
-                        <FormControl><Input placeholder="Entrez l'alias du client" {...field} /></FormControl>
+                        <FormControl>
+                            <AliasSelector value={field.value ?? ''} onChange={field.onChange} filter="user" />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -490,7 +492,7 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
             <>
                 <FormField control={form.control} name="amount" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Montant du financement (F)</FormLabel>
+                        <FormLabel>Montant du financement (Fcfa)</FormLabel>
                         <FormControl><Input type="number" placeholder="ex: 250000" {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>

@@ -19,7 +19,7 @@ export default function AdminClientFinancingForm({ onBack }: AdminClientFinancin
         </Button>
         <div>
           <h2 className="text-2xl font-bold text-primary">Saisir une demande de Financement Client</h2>
-          <p className="text-muted-foreground">Remplissez le formulaire au nom du client.</p>
+          <p className="text-muted-foreground">Remplissez le formulaire au nom du client. La demande sera évaluée par le moteur de décision.</p>
         </div>
       </div>
       
@@ -29,3 +29,4 @@ export default function AdminClientFinancingForm({ onBack }: AdminClientFinancin
     </div>
   );
 }
+
