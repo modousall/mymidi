@@ -27,6 +27,7 @@ import TransactionReceipt from './transaction-receipt';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatCurrency } from '@/lib/utils';
+import { parseISO } from 'date-fns';
 
 type TransactionHistoryProps = {
   showAll: boolean;
@@ -34,7 +35,7 @@ type TransactionHistoryProps = {
 };
 
 const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseISO(dateString);
     return date.toLocaleDateString('fr-FR', {
         day: 'numeric',
         month: 'short',

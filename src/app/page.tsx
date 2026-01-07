@@ -15,7 +15,7 @@ import { AvatarProvider } from '@/hooks/use-avatar';
 import { BalanceProvider } from '@/hooks/use-balance';
 import { ContactsProvider } from '@/hooks/use-contacts';
 import { TontineProvider } from '@/hooks/use-tontine';
-import { TransactionsProvider, useTransactions } from '@/hooks/use-transactions';
+import { TransactionsProvider } from '@/hooks/use-transactions';
 import { VaultsProvider } from '@/hooks/use-vaults';
 import { VirtualCardProvider } from '@/hooks/use-virtual-card';
 import { FeatureFlagProvider } from '@/hooks/use-feature-flags';
@@ -29,6 +29,7 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FirebaseClientProvider } from '@/firebase';
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
   loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
@@ -67,9 +68,14 @@ const ensureSuperAdminExists = () => {
 };
 
 const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => {
-  const { addTransaction } = useTransactions();
+  // This is a bit of a hack since we can't easily get the admin's addTransaction function here.
+  // In a real app, this would be handled differently, likely via a centralized API service.
+  // For the demo, we'll log a warning.
+  const handleSettlement = (tx: any) => {
+      console.warn("Settlement transaction from ProductProvider:", tx);
+  }
   return (
-    <ProductProvider addSettlementTransaction={addTransaction}>
+    <ProductProvider addSettlementTransaction={handleSettlement}>
       {children}
     </ProductProvider>
   )
@@ -78,39 +84,41 @@ const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => 
 // A single wrapper for all providers
 const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider alias={alias}>
-            <TreasuryProvider>
-                <CmsProvider>
-                    <ProductProviderWrapper>
-                        <FeatureFlagProvider>
-                            <RoleProvider>
-                                <MonthlyBudgetProvider>
-                                    <BalanceProvider alias={alias}>
-                                        <BnplProvider alias={alias}>
-                                            <IslamicFinancingProvider alias={alias}>
-                                                <AvatarProvider alias={alias}>
-                                                    <ContactsProvider alias={alias}>
-                                                        <VirtualCardProvider alias={alias}>
-                                                            <VaultsProvider alias={alias}>
-                                                                <TontineProvider alias={alias}>
-                                                                    <RecurringPaymentsProvider alias={alias}>
-                                                                        {children}
-                                                                    </RecurringPaymentsProvider>
-                                                                </TontineProvider>
-                                                            </VaultsProvider>
-                                                        </VirtualCardProvider>
-                                                    </ContactsProvider>
-                                                </AvatarProvider>
-                                            </IslamicFinancingProvider>
-                                        </BnplProvider>
-                                    </BalanceProvider>
-                                </MonthlyBudgetProvider>
-                            </RoleProvider>
-                        </FeatureFlagProvider>
-                    </ProductProviderWrapper>
-                </CmsProvider>
-            </TreasuryProvider>
-        </TransactionsProvider>
+        <FirebaseClientProvider>
+            <TransactionsProvider alias={alias}>
+                <TreasuryProvider>
+                    <CmsProvider>
+                        <ProductProviderWrapper>
+                            <FeatureFlagProvider>
+                                <RoleProvider>
+                                    <MonthlyBudgetProvider>
+                                        <BalanceProvider alias={alias}>
+                                            <BnplProvider alias={alias}>
+                                                <IslamicFinancingProvider alias={alias}>
+                                                    <AvatarProvider alias={alias}>
+                                                        <ContactsProvider alias={alias}>
+                                                            <VirtualCardProvider alias={alias}>
+                                                                <VaultsProvider alias={alias}>
+                                                                    <TontineProvider alias={alias}>
+                                                                        <RecurringPaymentsProvider alias={alias}>
+                                                                            {children}
+                                                                        </RecurringPaymentsProvider>
+                                                                    </TontineProvider>
+                                                                </VaultsProvider>
+                                                            </VirtualCardProvider>
+                                                        </ContactsProvider>
+                                                    </AvatarProvider>
+                                                </IslamicFinancingProvider>
+                                            </BnplProvider>
+                                        </BalanceProvider>
+                                    </MonthlyBudgetProvider>
+                                </RoleProvider>
+                            </FeatureFlagProvider>
+                        </ProductProviderWrapper>
+                    </CmsProvider>
+                </TreasuryProvider>
+            </TransactionsProvider>
+        </FirebaseClientProvider>
     )
 }
 
