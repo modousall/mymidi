@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BalanceProvider } from '@/hooks/use-balance';
 import { ContactsProvider } from '@/hooks/use-contacts';
@@ -24,6 +24,7 @@ import { AvatarProvider } from '@/hooks/use-avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User, Shield, Building } from 'lucide-react';
+import type { ManagedUser, Transaction } from '@/lib/types';
 
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
@@ -47,7 +48,7 @@ type UserInfo = {
   isSuspended: boolean;
 };
 
-const mockUsers: Record<string, UserInfo> = {
+const mockUsers: Record<string, UserInfo & Partial<ManagedUser>> = {
     user: {
         id: 'user-sim-001',
         firstName: 'Awa',
@@ -56,7 +57,10 @@ const mockUsers: Record<string, UserInfo> = {
         email: 'awa.diallo@example.com',
         role: 'user',
         alias: '771234567',
+        phoneNumber: '771234567',
         isSuspended: false,
+        balance: 150000,
+        avatar: null,
     },
     merchant: {
         id: 'merchant-sim-001',
@@ -66,7 +70,14 @@ const mockUsers: Record<string, UserInfo> = {
         email: 'lamine@boutique.sn',
         role: 'merchant',
         alias: '781234567',
+        phoneNumber: '781234567',
         isSuspended: false,
+        balance: 785000,
+        avatar: null,
+        merchantCode: 'lamine-shop',
+        brandName: 'Boutique Lamine',
+        ninea: 'NINEA001',
+        rccm: 'RCCM001',
     },
     admin: {
         id: 'admin-sim-001',
@@ -76,9 +87,20 @@ const mockUsers: Record<string, UserInfo> = {
         email: 'admin@midi.sn',
         role: 'admin',
         alias: '701234567',
+        phoneNumber: '701234567',
         isSuspended: false,
+        balance: 0,
+        avatar: null,
     }
 }
+
+const allMockUsers: ManagedUser[] = Object.values(mockUsers).map(u => u as ManagedUser);
+
+const allMockTransactions: Transaction[] = [
+    { id: 'tx1', userId: 'user-sim-001', type: 'received', counterparty: 'Lamine Diop', reason: 'Remboursement', amount: 25000, date: new Date().toISOString(), status: 'Terminé' },
+    { id: 'tx2', userId: 'user-sim-001', type: 'sent', counterparty: 'SENELEC', reason: 'Facture électricité', amount: 15000, date: new Date(Date.now() - 86400000).toISOString(), status: 'Terminé' },
+    { id: 'tx3', userId: 'merchant-sim-001', type: 'received', counterparty: 'Awa Diallo', reason: 'Achat en boutique', amount: 5000, date: new Date().toISOString(), status: 'Terminé' },
+];
 
 
 // A single wrapper for all providers that depend on a user alias
@@ -180,7 +202,7 @@ function SimulatedApp() {
             case 'admin':
             case 'superadmin':
             case 'support':
-                return <AdminDashboard onExit={handleLogout} />;
+                return <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />;
             case 'user':
             default:
                 return <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />;

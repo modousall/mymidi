@@ -28,8 +28,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/hooks/use-transactions';
 import { TransactionsProvider } from '@/hooks/use-transactions';
 
@@ -42,24 +41,15 @@ import VirtualCard from './virtual-card';
 const RoleManagementDialog = ({ user, onClose, onUpdate }: { user: any, onClose: () => void, onUpdate: (id: string, data: Partial<ManagedUser>) => void }) => {
     const [selectedRole, setSelectedRole] = useState(user.role);
     const { toast } = useToast();
-    const firestore = useFirestore();
-
+    
     const handleSaveRole = async () => {
-        if (selectedRole && firestore) {
-            const userDocRef = doc(firestore, 'users', user.id);
-            try {
-                await updateDoc(userDocRef, { role: selectedRole });
-                onUpdate(user.id, { role: selectedRole });
-                toast({
-                    title: "Rôle mis à jour",
-                    description: `Le rôle de ${user.firstName} a été changé en "${selectedRole}".`
-                });
-                onClose();
-            } catch (error) {
-                console.error("Error updating role: ", error);
-                toast({ title: "Erreur de mise à jour", description: "Impossible de changer le rôle.", variant: "destructive" });
-            }
-        }
+        // This is a simulation. In a real app this would call a secure backend function.
+        onUpdate(user.id, { role: selectedRole });
+        toast({
+            title: "Rôle mis à jour (simulation)",
+            description: `Le rôle de ${user.firstName} a été changé en "${selectedRole}".`
+        });
+        onClose();
     };
 
     const availableRoles = ['user', 'merchant', 'support', 'admin'];
@@ -250,28 +240,9 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
     const [activeServiceView, setActiveServiceView] = useState<ActiveServiceView>('transactions');
     const transactionHistoryRef = useRef<HTMLDivElement>(null);
     
-    const firestore = useFirestore();
 
-    const transactionsCollectionRef = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return collection(firestore, `users/${user.id}/transactions`);
-    }, [firestore, user]);
-    
-    const { data: userTransactions } = useCollection<Transaction>(transactionsCollectionRef);
-
-    const todaysRevenue = useMemo(() => {
-        if (!userTransactions) return 0;
-        const today = new Date().toISOString().split('T')[0];
-        return userTransactions
-            .filter((tx: any) => tx.type === 'received' && tx.date?.toDate && tx.date.toDate().toISOString().startsWith(today))
-            .reduce((sum: number, tx: any) => sum + tx.amount, 0);
-    }, [userTransactions]);
-
-    const todaysTransactionsCount = useMemo(() => {
-        if (!userTransactions) return 0;
-        const today = new Date().toISOString().split('T')[0];
-        return userTransactions.filter((tx: any) => tx.type === 'received' && tx.date?.toDate && tx.date.toDate().toISOString().startsWith(today)).length;
-    }, [userTransactions]);
+    const todaysRevenue = 0; // Simulated
+    const todaysTransactionsCount = 0; // Simulated
     
     const { allRequests } = useBnpl();
     
@@ -291,20 +262,12 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
     const virtualCardBalance = useMemo(() => (user as any).virtualCard?.balance ?? 0, [user]);
 
     const handleToggleSuspension = async () => {
-        if (!firestore) return;
         const newSuspensionState = !user.isSuspended;
-        const userDocRef = doc(firestore, 'users', user.id);
-        try {
-            await updateDoc(userDocRef, { isSuspended: newSuspensionState });
-            onUpdate(user.id, { isSuspended: newSuspensionState });
-            toast({
-                title: `Utilisateur ${newSuspensionState ? 'suspendu' : 'réactivé'}`,
-                description: `${user.firstName} a été ${newSuspensionState ? 'suspendu' : 'réactivé'}.`
-            });
-        } catch (error) {
-            console.error("Error updating suspension state: ", error);
-            toast({ title: "Erreur", description: "Impossible de modifier le statut de l'utilisateur.", variant: "destructive" });
-        }
+        onUpdate(user.id, { isSuspended: newSuspensionState });
+        toast({
+            title: `Utilisateur ${newSuspensionState ? 'suspendu' : 'réactivé'}`,
+            description: `${user.firstName} a été ${newSuspensionState ? 'suspendu' : 'réactivé'}.`
+        });
     }
     
     const handleScrollToTransactions = () => {
@@ -464,5 +427,3 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
         </UserServiceProvider>
     )
 }
-
-    

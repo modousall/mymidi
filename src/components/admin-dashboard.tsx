@@ -14,13 +14,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import AdminCashManagement from "./admin-cash-management";
 import AdminCms from "./admin-cms";
 import AdminReportingHub from "./admin-reporting-hub";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, collectionGroup, query } from 'firebase/firestore';
 import type { ManagedUser, Transaction } from '@/lib/types';
 
 
 type AdminDashboardProps = {
     onExit: () => void;
+    allUsers: ManagedUser[];
+    allTransactions: Transaction[];
 };
 
 type AdminView = 'dashboard' | 'users' | 'merchants' | 'transactions' | 'roles' | 'services' | 'financing' | 'cash' | 'cms' | 'reporting';
@@ -37,90 +37,27 @@ const adminFeatures: {id: AdminView, title: string, description: string, icon: J
     { id: "roles", title: "Rôles et Permissions", description: "Gérer les niveaux d'accès administratifs.", icon: <ShieldCheck /> },
 ]
 
-export default function AdminDashboard({ onExit }: AdminDashboardProps) {
+export default function AdminDashboard({ onExit, allUsers, allTransactions }: AdminDashboardProps) {
     const [view, setView] = useState<AdminView>('dashboard');
-    const firestore = useFirestore();
-
-    // Memoize queries to prevent re-fetching on every render
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        // Only fetch users if we are in a view that needs them
-        if (['users', 'merchants', 'financing', 'services'].includes(view)) {
-            return collection(firestore, 'users');
-        }
-        return null;
-    }, [firestore, view]);
-
-    const transactionsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-         // Only fetch all transactions if we are in a view that needs them
-        if (['transactions', 'reporting'].includes(view)) {
-            return query(collectionGroup(firestore, 'transactions'));
-        }
-        return null;
-    }, [firestore, view]);
-
-
-    const { data: usersData, isLoading: isLoadingUsers, error: usersError } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
-    const { data: allTransactions, isLoading: isLoadingTransactions, error: transactionsError } = useCollection<Transaction>(transactionsQuery);
-
-    const users = useMemo(() => {
-        if (!usersData) return [];
-        return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
-    }, [usersData]);
-    
-    const isLoading = isLoadingUsers || isLoadingTransactions;
-    const error = usersError || transactionsError;
-
-
-    // The refreshUsers function is simulated here as it depends on the useCollection hook's internal refresh logic which is not exposed.
-    // In a real scenario with more complex state management (like Redux or Zustand), this would be handled differently.
-    const refreshUsers = () => {
-        // This is a placeholder. The `useCollection` hook automatically refreshes on data change.
-        // For manual refresh, you might need to trigger a re-fetch, e.g., by changing a dependency of the useMemoFirebase.
-        console.log("Simulating user refresh...");
-    }
-
-    if (error) {
-        // This is a simplified error display. In a real app, you'd have a more robust error boundary.
-        return (
-             <div className="flex h-screen items-center justify-center">
-                <Card className="w-1/2 bg-destructive/10 border-destructive text-destructive-foreground">
-                    <CardHeader>
-                        <CardTitle>Erreur d'accès aux données</CardTitle>
-                        <CardDescription>Impossible de charger les données administrateur. Vérifiez vos permissions de sécurité.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="font-mono text-xs">{error.message}</p>
-                         <Button onClick={onExit} className="mt-4">Quitter</Button>
-                    </CardContent>
-                </Card>
-            </div>
-        )
-    }
 
     const renderContent = () => {
-        if (isLoading && view !== 'dashboard') {
-            return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>
-        }
-
         switch(view) {
             case 'users':
-                return <AdminUserManagement allUsers={users} refreshUsers={refreshUsers} />;
+                return <AdminUserManagement allUsers={allUsers} refreshUsers={() => {}} />;
             case 'merchants':
-                return <AdminMerchantManagement allUsers={users} refreshUsers={refreshUsers} />;
+                return <AdminMerchantManagement allUsers={allUsers} refreshUsers={() => {}} />;
             case 'transactions':
-                return <AdminTransactionAnalysis allTransactions={allTransactions || []} />;
+                return <AdminTransactionAnalysis allTransactions={allTransactions} />;
             case 'financing':
-                return <AdminFinancingHub allUsers={users} />;
+                return <AdminFinancingHub allUsers={allUsers} />;
             case 'cash':
                 return <AdminCashManagement />;
             case 'cms':
                 return <AdminCms />;
             case 'reporting':
-                return <AdminReportingHub allTransactions={allTransactions || []} />;
+                return <AdminReportingHub allTransactions={allTransactions} />;
             case 'services':
-                return <AdminFeatureManagement allUsers={users} />;
+                return <AdminFeatureManagement allUsers={allUsers} />;
             case 'roles':
                  return <AdminRoleManagement />;
             default:
