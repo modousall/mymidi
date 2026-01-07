@@ -240,21 +240,23 @@ function SimulatedApp() {
                  return (
                     <AccountProvider account={adminAccount}>
                       <TransactionsProvider>
-                        <ProductProvider>
-                            <RoleProvider>
-                                <FeatureFlagProvider>
-                                    <BalanceProvider alias="admin_sim_balance">
-                                        <BnplProvider alias="admin_sim_bnpl">
-                                            <IslamicFinancingProvider alias="admin_sim_islamic">
-                                                <TreasuryProvider>
-                                                    <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
-                                                </TreasuryProvider>
-                                            </IslamicFinancingProvider>
-                                        </BnplProvider>
-                                    </BalanceProvider>
-                                </FeatureFlagProvider>
-                            </RoleProvider>
-                        </ProductProvider>
+                        <CmsProvider>
+                            <ProductProvider>
+                                <RoleProvider>
+                                    <FeatureFlagProvider>
+                                        <BalanceProvider alias="admin_sim_balance">
+                                            <BnplProvider alias="admin_sim_bnpl">
+                                                <IslamicFinancingProvider alias="admin_sim_islamic">
+                                                    <TreasuryProvider>
+                                                        <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
+                                                    </TreasuryProvider>
+                                                </IslamicFinancingProvider>
+                                            </BnplProvider>
+                                        </BalanceProvider>
+                                    </FeatureFlagProvider>
+                                </RoleProvider>
+                            </ProductProvider>
+                        </CmsProvider>
                       </TransactionsProvider>
                     </AccountProvider>
                  );
