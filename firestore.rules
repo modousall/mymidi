@@ -87,9 +87,7 @@ service cloud.firestore {
      * The key security is that the client query must be strictly limited to the 'phoneNumber' field.
      */
     function isSigningInByPhone() {
-        return !isSignedIn() && 
-           request.query.keys().hasAny(['phoneNumber']) &&
-           request.query.keys().size() == 1;
+        return !isSignedIn() && request.query.keys().hasOnly(['phoneNumber']);
     }
 
 
