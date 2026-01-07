@@ -28,7 +28,7 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider, useUser, useAuth, useFirestore, createUserWithEmailAndPassword, signInWithEmailAndPassword } from '@/firebase';
+import { FirebaseClientProvider, useUser, useAuth, useFirestore, createUserWithEmailAndPassword, signInWithEmailAndPassword, FirestorePermissionError, errorEmitter } from '@/firebase';
 import { collection, query, where, getDocs, doc, setDoc, getDoc } from 'firebase/firestore';
 
 
@@ -63,22 +63,17 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
     const adminPassword = `${adminPincode}${adminPincode}`;
     const adminAlias = '+221775478575';
 
-    // We can't directly check if a user exists by email on the client-side without signing in.
-    // A common workaround for bootstrap is to try signing in, and if it fails with 'user-not-found', create the user.
     try {
         await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-        // If sign-in succeeds, user exists. Sign them out to not affect the main auth flow.
         await auth.signOut();
     } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
-                // User doesn't exist, so create them.
                 const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
                 const user = userCredential.user;
-
-                // Now create the user document in Firestore
                 const userDocRef = doc(firestore, 'users', user.uid);
-                await setDoc(userDocRef, {
+
+                const userData = {
                     id: user.uid,
                     firstName: 'Modou',
                     lastName: 'Sall',
@@ -88,9 +83,22 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
                     role: 'superadmin',
                     isSuspended: false,
                     balance: 1000000,
-                });
-                console.log("Superadmin account created in Firebase Auth and Firestore.");
-                 // Also sign out after creation to let the user log in manually
+                };
+                
+                // Use non-blocking setDoc with contextual error handling
+                setDoc(userDocRef, userData)
+                    .then(() => {
+                         console.log("Superadmin account created in Firebase Auth and Firestore.");
+                    })
+                    .catch(async (serverError) => {
+                        const permissionError = new FirestorePermissionError({
+                            path: userDocRef.path,
+                            operation: 'create',
+                            requestResourceData: userData,
+                        });
+                        errorEmitter.emit('permission-error', permissionError);
+                    });
+
                 await auth.signOut();
             } catch (creationError) {
                 console.error("Failed to create superadmin:", creationError);
@@ -101,9 +109,6 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 
 
 const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => {
-  // This is a bit of a hack since we can't easily get the admin's addTransaction function here.
-  // In a real app, this would be handled differently, likely via a centralized API service.
-  // For the demo, we'll log a warning.
   const handleSettlement = (tx: any) => {
       console.warn("Settlement transaction from ProductProvider:", tx);
   }
@@ -215,8 +220,6 @@ function AuthWrapper() {
                     });
                     setStep(getDashboardStepForRole(userData.role));
                 } else {
-                    // This case can happen if user exists in Firebase Auth but not in our DB.
-                    // For this prototype, we'll log out the user.
                     console.error("User document not found in Firestore for authenticated user.");
                     auth.signOut();
                     setStep('login');
@@ -224,25 +227,24 @@ function AuthWrapper() {
                 }
             });
         } else {
-            // No user is signed in
             setStep('demo');
             setUserInfo(null);
         }
     }, [user, isUserLoading, auth, firestore, toast]);
 
     const handleAliasCreated = (newAlias: string) => {
-        // Store temporarily for the next steps of onboarding
         sessionStorage.setItem('midi_onboarding_alias', newAlias);
         setStep('kyc');
     };
 
-    const handleKycComplete = (info: Omit<UserInfo, 'id' | 'role' | 'alias'>) => {
+    const handleKycComplete = (info: Omit<UserInfo, 'id' | 'role' | 'alias' | 'firstName' | 'lastName'> & {name:string}) => {
         const aliasForKyc = sessionStorage.getItem('midi_onboarding_alias');
         if (aliasForKyc) {
+            const nameParts = info.name.split(' ');
             sessionStorage.setItem(`midi_onboarding_user_info`, JSON.stringify({
                 alias: aliasForKyc,
-                firstName: info.firstName,
-                lastName: info.lastName,
+                firstName: nameParts[0] || '',
+                lastName: nameParts.slice(1).join(' ') || '',
                 email: info.email,
             }));
             setStep('pin_creation');
@@ -260,29 +262,36 @@ function AuthWrapper() {
             const password = `${pin}${pin}`;
 
             try {
-                // Create user in Firebase Auth
                 const userCredential = await createUserWithEmailAndPassword(auth, tempInfo.email, password);
                 const newUser = userCredential.user;
                 
-                // Create user document in Firestore
                 const userDocRef = doc(firestore, 'users', newUser.uid);
-                await setDoc(userDocRef, {
+                const userData = {
                     id: newUser.uid,
                     firstName: tempInfo.firstName,
                     lastName: tempInfo.lastName,
                     email: tempInfo.email,
                     phoneNumber: tempInfo.alias,
-                    alias: tempInfo.alias, // Using phone number as alias for login
+                    alias: tempInfo.alias,
                     role: 'user',
                     isSuspended: false,
                     balance: 0,
-                });
+                };
 
-                // Clean up
+                setDoc(userDocRef, userData)
+                  .catch(async (serverError) => {
+                    const permissionError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'create',
+                        requestResourceData: userData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                  });
+
+
                 sessionStorage.removeItem('midi_onboarding_alias');
                 sessionStorage.removeItem('midi_onboarding_user_info');
                 
-                // The useEffect will handle setting the user state from the new auth state
                 toast({ title: "Compte créé avec succès !", description: "Bienvenue sur Midi." });
 
             } catch(error: any) {
@@ -291,7 +300,7 @@ function AuthWrapper() {
                     description: error.message || "Impossible de créer le compte. L'email est peut-être déjà utilisé.",
                     variant: "destructive",
                 });
-                setStep('alias'); // Go back to alias creation
+                setStep('alias');
             }
         } else {
             toast({ title: "Erreur critique d'inscription", variant: "destructive" });
@@ -304,15 +313,15 @@ function AuthWrapper() {
     const handleLoginStart = () => setStep('login');
   
     const handleLogout = () => {
+        if(!auth) return;
         auth.signOut();
         toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
     }
 
     const handleLogin = (loginAlias: string, pin: string) => {
-        if (!firestore) return;
+        if (!firestore || !auth) return;
         const password = `${pin}${pin}`;
         
-        // Query firestore for a user with the matching alias (phoneNumber)
         const usersRef = collection(firestore, 'users');
         const q = query(usersRef, where("phoneNumber", "==", loginAlias));
 
@@ -330,17 +339,15 @@ function AuthWrapper() {
                 return;
             }
 
-            // We don't check pincode here anymore, we let Firebase Auth do it.
             signInWithEmailAndPassword(auth, userData.email, password)
                 .then((userCredential) => {
-                    // Login successful, the useEffect hook will handle the rest.
                     toast({ title: `Bienvenue, ${userData.firstName} !` });
                 })
                 .catch((error) => {
                     console.error("Firebase sign-in error:", error);
                     toast({
-                        title: "Erreur de Connexion Firebase",
-                        description: "Impossible de se connecter. Veuillez réessayer.",
+                        title: "Erreur de Connexion",
+                        description: "Le code PIN est peut-être incorrect.",
                         variant: "destructive",
                     });
                 });
@@ -374,7 +381,7 @@ function AuthWrapper() {
             case 'alias':
                 return <AliasCreation onAliasCreated={handleAliasCreated} />;
             case 'kyc':
-                return <KYCForm onKycComplete={handleKycComplete} />;
+                return <KYCForm onKycComplete={handleKycComplete as any} />;
             case 'pin_creation':
                 return <PinCreation onPinCreated={handlePinCreated} />;
             case 'login':
