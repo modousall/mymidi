@@ -6,7 +6,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, ArrowUp, ArrowDown, Download, RotateCcw, Filter, Search, Receipt, CreditCard, Landmark, PiggyBank, Wallet, Phone } from 'lucide-react';
+import { ArrowLeft, ArrowUp, ArrowDown, Download, RotateCcw, Filter, Search, Receipt, CreditCard, Landmark, PiggyBank, Wallet, Phone, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import {
@@ -292,7 +292,11 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
                 )}
             </CardHeader>
             <CardContent className="px-0">
-                {transactionsToShow.length > 0 ? (
+                {!transactions ? (
+                    <div className="flex justify-center items-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                ) : transactionsToShow.length > 0 ? (
                     <div className="space-y-1">
                         {transactionsToShow.map((tx) => (
                             <Dialog key={tx.id}>
@@ -327,7 +331,7 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
                         </p>
                     </div>
                 )}
-                {!showAll && transactions.length > 5 && (
+                {!showAll && transactions && transactions.length > 5 && (
                     <Button variant="link" className="w-full mt-4 text-primary" onClick={() => onShowAll(true)}>
                         Tout afficher
                     </Button>

@@ -46,16 +46,18 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
     );
   }, [user, firestore]);
 
-  const { data: transactions, isLoading } = useCollection<Omit<Transaction, 'id' | 'date'> & { date: any }>(transactionsQuery);
+  const { data: transactions, isLoading } = useCollection<Omit<Transaction, 'id'| 'date' | 'userId'> & { date: any }>(transactionsQuery as any);
 
   const formattedTransactions = useMemo(() => {
     if (!transactions) return [];
     return transactions.map(tx => ({
         ...tx,
+        id: tx.id,
+        userId: user!.uid,
         // The date from Firestore is a Timestamp object, convert it to ISO string
         date: tx.date?.toDate ? tx.date.toDate().toISOString() : new Date().toISOString(),
     }));
-  }, [transactions]);
+  }, [transactions, user]);
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
