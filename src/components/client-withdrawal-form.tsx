@@ -12,7 +12,6 @@ import { ArrowLeft, Loader2, QrCode, ScanLine, KeyRound, Copy, Share2, Download 
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from './ui/dialog';
-import QRCodeScanner from './qr-code-scanner';
 import { formatCurrency } from '@/lib/utils';
 import { AliasSelector } from './alias-selector';
 import { useBalance } from '@/hooks/use-balance';
@@ -24,6 +23,13 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import TransactionReceipt from './transaction-receipt';
 import type { Transaction } from '@/hooks/use-transactions';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
+  loading: () => <div className="flex items-center justify-center h-48"><Skeleton className="h-32 w-32" /></div>,
+  ssr: false,
+});
 
 const withdrawalFormSchema = z.object({
   merchantAlias: z.string().min(1, { message: "Veuillez sélectionner un point de service." }),
@@ -330,7 +336,7 @@ export default function ClientWithdrawalForm({ onBack, withdrawalType, alias }: 
                     <FormLabel>Point de service</FormLabel>
                     <div className="flex items-center justify-between p-3 border rounded-md bg-secondary">
                         <p className="font-medium">GAB Midi</p>
-                         <Dialog>
+                         <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
                             <DialogTrigger asChild>
                                 <Button type="button" variant="outline"><ScanLine className="mr-2"/>Scanner un GAB</Button>
                             </DialogTrigger>

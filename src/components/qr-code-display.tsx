@@ -8,9 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SheetHeader, SheetTitle } from './ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import QRCodeScanner from './qr-code-scanner';
 import { useAvatar } from '@/hooks/use-avatar';
 import type { CreditProposal } from './payment-form';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
+  loading: () => <div className="flex items-center justify-center h-48"><Skeleton className="h-32 w-32" /></div>,
+  ssr: false,
+});
 
 type UserInfo = {
     name: string;

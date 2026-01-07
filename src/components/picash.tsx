@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -13,10 +12,16 @@ import { ArrowLeft, Loader2, Copy, QrCode, ScanLine, CheckCircle } from 'lucide-
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import QRCodeScanner from './qr-code-scanner';
 import { formatCurrency } from '@/lib/utils';
 import { useUserManagement, type ManagedUser } from '@/hooks/use-user-management';
 import QrCodeDisplay from './qr-code-display';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
+  loading: () => <div className="flex items-center justify-center h-48"><Skeleton className="h-32 w-32" /></div>,
+  ssr: false,
+});
 
 const picashFormSchema = z.object({
   amount: z.coerce.number().positive({ message: "Le montant du retrait doit être positif." }),

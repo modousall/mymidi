@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import React, { useState } from 'react';
@@ -17,13 +16,20 @@ import SecurityAssistantDialog from './security-assistant-dialog';
 import { Loader2, ClipboardPaste, QrCode, ScanLine } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import QRCodeScanner from './qr-code-scanner';
 import UnifiedFinancingForm from './unified-financing-form';
 import { formatCurrency } from '@/lib/utils';
 import type { CreditProposalPrefill } from './unified-financing-form';
 import { useUserManagement } from '@/hooks/use-user-management';
 import QrCodeDisplay from './qr-code-display';
 import { AliasSelector } from './alias-selector';
+import dynamic from 'next/dynamic';
+import { Skeleton } from './ui/skeleton';
+
+const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
+  loading: () => <div className="flex items-center justify-center h-48"><Skeleton className="h-32 w-32" /></div>,
+  ssr: false,
+});
+
 
 export const creditProposalSchema = z.object({
   type: z.literal('bnpl_proposal'),
