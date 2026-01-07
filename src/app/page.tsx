@@ -388,36 +388,35 @@ function AuthWrapper() {
             return <div className="flex h-screen items-center justify-center">Chargement...</div>;
         }
 
-        // Authenticated user flows
-        if (userInfo && user) {
-            const providers = (
-                <AppProviders>
-                    <TransactionsProvider alias={userInfo.alias}>
-                        <BalanceProvider alias={userInfo.alias}>
-                            <ContactsProvider alias={userInfo.alias}>
-                                <AvatarProvider alias={userInfo.alias}>
-                                    <VirtualCardProvider alias={userInfo.alias}>
-                                        <VaultsProvider alias={userInfo.alias}>
-                                            <TontineProvider alias={userInfo.alias}>
-                                                <BnplProvider alias={userInfo.alias}>
-                                                    <IslamicFinancingProvider alias={userInfo.alias}>
-                                                        <RecurringPaymentsProvider alias={userInfo.alias}>
-                                                            {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
-                                                            {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
-                                                            {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
-                                                        </RecurringPaymentsProvider>
-                                                    </IslamicFinancingProvider>
-                                                </BnplProvider>
-                                            </TontineProvider>
-                                        </VaultsProvider>
-                                    </VirtualCardProvider>
-                                </AvatarProvider>
-                            </ContactsProvider>
-                        </BalanceProvider>
-                    </TransactionsProvider>
-                </AppProviders>
-            );
+        const providers = (
+            <AppProviders>
+                <TransactionsProvider alias={userInfo?.alias || ''}>
+                    <BalanceProvider alias={userInfo?.alias || ''}>
+                        <ContactsProvider alias={userInfo?.alias || ''}>
+                            <AvatarProvider alias={userInfo?.alias || ''}>
+                                <VirtualCardProvider alias={userInfo?.alias || ''}>
+                                    <VaultsProvider alias={userInfo?.alias || ''}>
+                                        <TontineProvider alias={userInfo?.alias || ''}>
+                                            <BnplProvider alias={userInfo?.alias || ''}>
+                                                <IslamicFinancingProvider alias={userInfo?.alias || ''}>
+                                                    <RecurringPaymentsProvider alias={userInfo?.alias || ''}>
+                                                        {view === 'dashboard' && userInfo && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
+                                                        {view === 'merchant_dashboard' && userInfo && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
+                                                        {view === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
+                                                    </RecurringPaymentsProvider>
+                                                </IslamicFinancingProvider>
+                                            </BnplProvider>
+                                        </TontineProvider>
+                                    </VaultsProvider>
+                                </VirtualCardProvider>
+                            </AvatarProvider>
+                        </ContactsProvider>
+                    </BalanceProvider>
+                </TransactionsProvider>
+            </AppProviders>
+        );
 
+        if (userInfo && user) {
             switch(step) {
                 case 'dashboard':
                 case 'merchant_dashboard':
@@ -458,3 +457,4 @@ export default function AuthenticationGate() {
         </FirebaseClientProvider>
     );
 }
+
