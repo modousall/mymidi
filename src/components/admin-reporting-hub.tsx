@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -147,3 +148,4 @@ export default function AdminReportingHub() {
             {renderContent()}
         </div>
     );
+}
