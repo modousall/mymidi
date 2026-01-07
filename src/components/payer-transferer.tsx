@@ -6,15 +6,16 @@ import React, { useState } from 'react';
 import PaymentForm from './payment-form';
 import SplitBill from './split-bill';
 import { Button } from './ui/button';
-import { ArrowLeft, ArrowUp, Users, ChevronRight, Repeat } from 'lucide-react';
+import { ArrowLeft, ArrowUp, Users, ChevronRight, Repeat, Globe } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import RecurringPayments from './recurring-payments';
+import PiSpiForm from './pi-spi-form';
 
 
-type PayerTransfererState = 'menu' | 'ponctuel' | 'recurrent';
+type PayerTransfererState = 'menu' | 'ponctuel' | 'recurrent' | 'pi-spi';
 
 type PayerTransfererProps = {
     onBack: () => void;
@@ -55,6 +56,7 @@ export default function PayerTransferer({ onBack }: PayerTransfererProps) {
 
     const menuItems = [
         { id: 'ponctuel', title: "Transfert Ponctuel", description: "Envoyez de l'argent ou partagez une dépense.", icon: <ArrowUp />, colorClass: "bg-blue-500" },
+        { id: 'pi-spi', title: "Transfert PI-SPI", description: "Envoyez vers une banque ou un autre wallet.", icon: <Globe />, colorClass: "bg-teal-500" },
         { id: 'recurrent', title: "Paiements Récurrents", description: "Programmez des abonnements ou transferts.", icon: <Repeat />, colorClass: "bg-purple-500" },
     ];
     
@@ -89,6 +91,10 @@ export default function PayerTransferer({ onBack }: PayerTransfererProps) {
      if (state === 'recurrent') {
         return <RecurringPayments onBack={() => setState('menu')} />
     }
+    
+    if (state === 'pi-spi') {
+        return <PiSpiForm onBack={() => setState('menu')} />
+    }
 
 
     return (
@@ -103,14 +109,16 @@ export default function PayerTransferer({ onBack }: PayerTransfererProps) {
                 </div>
             </div>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto'>
-                <FeatureCard 
-                    {...menuItems[0]}
-                    onClick={() => setState('ponctuel')}
-                />
-                <FeatureCard 
-                    {...menuItems[1]}
-                    onClick={() => setState('recurrent')}
-                />
+                {menuItems.map(item => (
+                    <FeatureCard
+                        key={item.id}
+                        title={item.title}
+                        description={item.description}
+                        icon={item.icon}
+                        colorClass={item.colorClass}
+                        onClick={() => setState(item.id as PayerTransfererState)}
+                    />
+                ))}
             </div>
         </div>
     )
