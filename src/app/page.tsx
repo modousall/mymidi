@@ -1,17 +1,7 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import OnboardingDemo from '@/components/onboarding-demo';
-import AliasCreation from '@/components/alias-creation';
-import PermissionsRequest from '@/components/permissions-request';
-import LoginForm from '@/components/login-form';
-import KYCForm from '@/components/kyc-form';
-import PinCreation from '@/components/pin-creation';
 import { useToast } from '@/hooks/use-toast';
-import Dashboard from '@/components/dashboard';
-import { AvatarProvider } from '@/hooks/use-avatar';
 import { BalanceProvider } from '@/hooks/use-balance';
 import { ContactsProvider } from '@/hooks/use-contacts';
 import { TontineProvider } from '@/hooks/use-tontine';
@@ -29,8 +19,12 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider, useUser, useAuth, useFirestore, createUserWithEmailAndPassword, signInWithEmailAndPassword, FirestorePermissionError, errorEmitter, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { FirebaseClientProvider, useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import AuthForm from '@/components/login-form';
+import Dashboard from '@/components/dashboard';
+import { AvatarProvider } from '@/hooks/use-avatar';
+import { logout } from '@/lib/auth';
 
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
@@ -51,71 +45,7 @@ type UserInfo = {
   email: string;
   role: 'user' | 'merchant' | 'admin' | 'superadmin' | 'support' | 'agent';
   alias: string;
-};
-
-type AppStep = 'demo' | 'permissions' | 'login' | 'kyc' | 'alias' | 'pin_creation' | 'dashboard' | 'merchant_dashboard' | 'admin_dashboard';
-
-
-// Function to ensure the superadmin exists in Firebase
-const ensureSuperAdminExists = async (auth: any, firestore: any) => {
-    if (!auth || !firestore) return;
-
-    const adminEmail = 'modousall1@gmail.com';
-    const adminPincode = '1234';
-    const adminPassword = `${adminPincode}${adminPincode}`;
-    const adminAlias = '+221775478575';
-
-    try {
-        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-        // If sign-in is successful, the user exists. We sign them out to not keep them logged in during bootstrap.
-        await auth.signOut();
-    } catch (error: any) {
-        // If user does not exist, create them
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-                const user = userCredential.user;
-                const userDocRef = doc(firestore, 'users', user.uid);
-
-                const userData = {
-                    id: user.uid,
-                    firstName: 'Modou',
-                    lastName: 'Sall',
-                    email: adminEmail,
-                    phoneNumber: adminAlias,
-                    alias: adminAlias,
-                    role: 'superadmin',
-                    isSuspended: false,
-                    balance: 1000000,
-                };
-                
-                await setDoc(userDocRef, userData).catch(e => {
-                    errorEmitter.emit(
-                        'permission-error',
-                        new FirestorePermissionError({
-                            path: userDocRef.path,
-                            operation: 'create',
-                            requestResourceData: userData,
-                        })
-                    )
-                });
-                
-                // Sign out after creating the account to let the user log in normally
-                await auth.signOut();
-
-            } catch (creationError: any) {
-                // This might happen if there's a race condition or other issue
-                 errorEmitter.emit(
-                    'permission-error',
-                    new FirestorePermissionError({
-                        path: `users/${(creationError as any)?.user?.uid || 'unknown'}`,
-                        operation: 'create',
-                        requestResourceData: (creationError as any).userData,
-                    })
-                )
-            }
-        }
-    }
+  isSuspended: boolean;
 };
 
 
@@ -158,50 +88,26 @@ const AppProviders = ({ userId, alias, children }: { userId: string, alias: stri
     )
 }
 
-const getDashboardStepForRole = (role: UserInfo['role']): AppStep => {
-    switch (role) {
-        case 'merchant':
-            return 'merchant_dashboard';
-        case 'admin':
-        case 'superadmin':
-        case 'support':
-             return 'admin_dashboard';
-        case 'user':
-        default:
-            return 'dashboard';
-    }
-};
-
 function AuthWrapper() {
     const { user, isUserLoading } = useUser();
-    const [step, setStep] = useState<AppStep>('demo');
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const { toast } = useToast();
-    const auth = useAuth();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
-    // Bootstrap superadmin on initial load
-    useEffect(() => {
-        if(auth && firestore) {
-           ensureSuperAdminExists(auth, firestore);
-        }
-    }, [auth, firestore]);
-
-    // Firestore hook to get user profile data
+    // Memoize the document reference
     const userDocRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
+        if (!user) return null;
         return doc(firestore, 'users', user.uid);
     }, [user, firestore]);
-    const { data: userDoc, isLoading: isUserDocLoading } = useDoc<Omit<UserInfo, 'id' | 'alias' | 'name'> & { role: UserInfo['role'], phoneNumber: string, isSuspended: boolean }>(userDocRef);
+    
+    // Use the useDoc hook to get the user profile data
+    const { data: userDoc, isLoading: isUserDocLoading } = useDoc<Omit<UserInfo, 'id' | 'alias' | 'name'>>(userDocRef);
 
+    // Main loading state that waits for both Firebase Auth and Firestore profile
+    const isLoading = isUserLoading || (user && isUserDocLoading);
 
     useEffect(() => {
-        // Don't do anything until both user and userDoc loading states are settled
-        if (isUserLoading || (user && isUserDocLoading)) {
-            setIsLoading(true);
-            return;
-        }
+        if (isLoading) return; // Wait until everything is loaded
 
         if (user && userDoc) {
             if (userDoc.isSuspended) {
@@ -210,236 +116,73 @@ function AuthWrapper() {
                     description: "Votre compte a été suspendu. Veuillez contacter le support.",
                     variant: "destructive",
                 });
-                auth.signOut();
-                setStep('login');
+                logout(); // Use the central logout function
                 setUserInfo(null);
-            } else {
-                setUserInfo({
-                    id: user.uid,
-                    firstName: userDoc.firstName,
-                    lastName: userDoc.lastName,
-                    name: `${userDoc.firstName} ${userDoc.lastName}`,
-                    email: user.email || '',
-                    role: userDoc.role,
-                    alias: userDoc.phoneNumber,
-                });
-                setStep(getDashboardStepForRole(userDoc.role));
-            }
-        } else {
-            // This now correctly handles both the "not logged in" case and the "logged in but profile not found" case.
-            setStep('demo');
-            setUserInfo(null);
-            if (user) {
-                // If user object exists but no userDoc, it's a dangling auth account.
-                // Could be a race condition on signup, or an error.
-                // We'll log them out to be safe and force a clean login/signup.
-                console.warn("User authenticated but no profile found in Firestore. Logging out.");
-                auth.signOut();
-            }
-        }
-
-        // All checks are done, stop loading.
-        setIsLoading(false);
-    }, [user, userDoc, isUserLoading, isUserDocLoading, auth, toast]);
-
-    const handleAliasCreated = (newAlias: string) => {
-        sessionStorage.setItem('midi_onboarding_alias', newAlias);
-        setStep('kyc');
-    };
-
-    const handleKycComplete = (info: Omit<UserInfo, 'id' | 'role' | 'alias' | 'firstName' | 'lastName' | 'name'> & {name:string}) => {
-        const aliasForKyc = sessionStorage.getItem('midi_onboarding_alias');
-        if (aliasForKyc) {
-            const nameParts = info.name.split(' ');
-            sessionStorage.setItem(`midi_onboarding_user_info`, JSON.stringify({
-                alias: aliasForKyc,
-                firstName: nameParts[0] || '',
-                lastName: nameParts.slice(1).join(' ') || '',
-                email: info.email,
-            }));
-            setStep('pin_creation');
-        } else {
-            toast({ title: "Erreur critique", description: "L'alias de l'utilisateur est manquant.", variant: "destructive" });
-            setStep('demo');
-        }
-    };
-  
-    const handlePinCreated = async (pin: string) => {
-        const tempUserInfoString = sessionStorage.getItem('midi_onboarding_user_info');
-        
-        if (tempUserInfoString && auth && firestore) {
-            const tempInfo = JSON.parse(tempUserInfoString);
-            const password = `${pin}${pin}`;
-            let newUser;
-
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, tempInfo.email, password);
-                newUser = userCredential.user;
-                
-                const userDocRef = doc(firestore, 'users', newUser.uid);
-                const userData = {
-                    id: newUser.uid,
-                    firstName: tempInfo.firstName,
-                    lastName: tempInfo.lastName,
-                    email: tempInfo.email,
-                    phoneNumber: tempInfo.alias,
-                    alias: tempInfo.alias,
-                    role: 'user',
-                    isSuspended: false,
-                    balance: 0,
-                };
-
-                // Use blocking setDoc to ensure document is created before proceeding
-                await setDoc(userDocRef, userData);
-
-                sessionStorage.removeItem('midi_onboarding_alias');
-                sessionStorage.removeItem('midi_onboarding_user_info');
-                
-                // The useEffect will handle the transition to the dashboard automatically
-                // once the user and userDoc are available.
-
-            } catch(error: any) {
-                 toast({
-                    title: "Erreur d'inscription",
-                    description: error.message || "Impossible de créer le compte. L'email est peut-être déjà utilisé.",
-                    variant: "destructive",
-                });
-                
-                // If user was created in Auth but doc creation failed, delete the user
-                if (newUser) {
-                    await newUser.delete();
-                }
-
-                setStep('alias');
-            }
-        } else {
-            toast({ title: "Erreur critique d'inscription", variant: "destructive" });
-            setStep('demo');
-        }
-    }
-  
-    const handleOnboardingStart = () => setStep('permissions');
-    const handlePermissionsGranted = () => setStep('alias');
-    const handleLoginStart = () => setStep('login');
-  
-    const handleLogout = () => {
-        if(!auth) return;
-        auth.signOut();
-        toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
-    }
-
-    const handleLogin = async (loginIdentifier: string, secret: string) => {
-        if (!firestore || !auth) {
-            toast({ title: "Erreur", description: "Services d'authentification non disponibles.", variant: "destructive" });
-            return;
-        }
-    
-        const password = secret.length === 4 ? `${secret}${secret}` : secret;
-    
-        const handleAuthError = (error: any, identifier: string) => {
-            console.error(`Firebase sign-in error for ${identifier}:`, error);
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                toast({
-                    title: "Erreur de Connexion",
-                    description: "L'identifiant ou le secret est incorrect.",
-                    variant: "destructive",
-                });
-            } else {
-                toast({
-                    title: "Erreur de Connexion",
-                    description: error.message || "Une erreur inconnue est survenue.",
-                    variant: "destructive",
-                });
-            }
-        };
-    
-        // Try signing in with email first
-        if (loginIdentifier.includes('@')) {
-            try {
-                await signInWithEmailAndPassword(auth, loginIdentifier, password);
-                // On success, the useUser hook will handle the rest
-            } catch (error) {
-                handleAuthError(error, loginIdentifier);
-            }
-            return;
-        }
-    
-        // If not an email, assume it's a phone number and try to find the user's email
-        try {
-            const usersRef = collection(firestore, "users");
-            const q = query(usersRef, where("phoneNumber", "==", loginIdentifier));
-            const querySnapshot = await getDocs(q);
-    
-            if (querySnapshot.empty) {
-                // No user found with this phone number
-                handleAuthError({ code: 'auth/user-not-found' }, loginIdentifier);
                 return;
             }
-    
-            const userDoc = querySnapshot.docs[0].data();
-            const userEmail = userDoc.email;
-    
-            if (userEmail) {
-                try {
-                    await signInWithEmailAndPassword(auth, userEmail, password);
-                    // On success, the useUser hook will handle the rest
-                } catch (error) {
-                    // This can happen if the password is wrong for the found user
-                    handleAuthError(error, loginIdentifier);
-                }
-            } else {
-                // User doc exists but has no email, this is a data integrity issue.
-                handleAuthError({ code: 'auth/user-not-found', message: 'User profile incomplete.' }, loginIdentifier);
-            }
-        } catch (error) {
-            // This can happen if Firestore rules deny the query
-            handleAuthError(error, loginIdentifier);
-        }
-    };
-  
-    const renderContent = () => {
-        if (isLoading) {
-            return <div className="flex h-screen items-center justify-center">Chargement...</div>;
-        }
+            
+            // Set the user info state once all data is available
+            setUserInfo({
+                id: user.uid,
+                firstName: userDoc.firstName,
+                lastName: userDoc.lastName,
+                name: `${userDoc.firstName} ${userDoc.lastName}`,
+                email: user.email || '',
+                role: userDoc.role,
+                alias: userDoc.phoneNumber,
+                isSuspended: userDoc.isSuspended,
+            });
 
-        if (userInfo) {
-            return (
-                 <AppProviders userId={userInfo.id} alias={userInfo.alias}>
-                    {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
-                    {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
-                    {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
-                 </AppProviders>
-            );
-        }
-
-        // Public onboarding/login flow is wrapped in providers that don't need an alias
-        const publicFlow = () => {
-             switch (step) {
-                case 'demo':
-                    return <OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} />;
-                case 'permissions':
-                    return <PermissionsRequest onPermissionsGranted={handlePermissionsGranted} />;
-                case 'alias':
-                    return <AliasCreation onAliasCreated={handleAliasCreated} />;
-                case 'kyc':
-                    return <KYCForm onKycComplete={handleKycComplete as any} />;
-                case 'pin_creation':
-                    return <PinCreation onPinCreated={handlePinCreated} />;
-                case 'login':
-                    return <LoginForm onLogin={handleLogin} onBack={() => setStep('demo')} />;
-                default:
-                    return <OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} />;
+        } else {
+             // If user is logged out or profile is missing, ensure userInfo is null
+            setUserInfo(null);
+            if (user && !userDoc) {
+                // This can happen briefly during signup, but if it persists, it's a data integrity issue.
+                console.warn("User is authenticated, but no profile document was found. This might be temporary during signup.");
             }
         }
+    }, [user, userDoc, isLoading, toast]);
+
+    const handleLogout = () => {
+        logout();
+        toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
+    }
+    
+    const renderDashboard = () => {
+        if (!userInfo) return null;
         
-        return (
-            <CmsProvider>
-                 {publicFlow()}
-            </CmsProvider>
-        )
+        switch (userInfo.role) {
+            case 'merchant':
+                return <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />;
+            case 'admin':
+            case 'superadmin':
+            case 'support':
+                return <AdminDashboard onExit={handleLogout} />;
+            case 'user':
+            default:
+                return <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />;
+        }
     };
   
-    return <main className="bg-background min-h-screen">{renderContent()}</main>;
+    // Display a loading screen while authentication state is being determined
+    if (isLoading) {
+        return <div className="flex h-screen items-center justify-center">Chargement...</div>;
+    }
+  
+    // Once loading is complete, render either the authenticated view or the login form
+    return (
+        <main className="bg-background min-h-screen">
+            {userInfo ? (
+                <AppProviders userId={userInfo.id} alias={userInfo.alias}>
+                   {renderDashboard()}
+                </AppProviders>
+            ) : (
+                <CmsProvider>
+                    <AuthForm />
+                </CmsProvider>
+            )}
+        </main>
+    );
 }
 
 export default function AuthenticationGate() {

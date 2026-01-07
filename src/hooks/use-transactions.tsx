@@ -37,8 +37,8 @@ type TransactionsProviderProps = {
 };
 
 export const TransactionsProvider = ({ children, forUserId }: TransactionsProviderProps) => {
-  const { user } = useUser(); // Use the dedicated user hook
-  const firestore = useFirestore();
+  const { user } = useUser(); // This hook just provides user state, it doesn't fetch from provider context
+  const firestore = useFirestore(); // This hook gets the instance from the main provider context
 
   const targetUserId = forUserId || user?.uid;
 
