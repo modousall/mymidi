@@ -19,7 +19,7 @@ export async function billPaymentAssistant(input: BillPaymentAssistantInput): Pr
     name: 'billPaymentAssistantPrompt',
     input: {schema: BillPaymentAssistantInputSchema},
     output: {schema: BillPaymentAssistantOutputSchema},
-    model: 'googleai/gemini-1.5-flash',
+    model: 'gemini-1.5-flash',
     prompt: `Vous êtes un assistant de paiement de factures pour un service financier en Afrique de l'Ouest.
 Analysez les détails de paiement de facture suivants et fournissez des conseils à l'utilisateur.
 
