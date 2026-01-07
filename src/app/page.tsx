@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -25,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { User, Shield, Building } from 'lucide-react';
 import type { ManagedUser, Transaction } from '@/lib/types';
+import { UserManagementProvider } from '@/hooks/use-user-management';
 
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
@@ -106,39 +108,41 @@ const allMockTransactions: Transaction[] = [
 // A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ userId, alias, children }: { userId: string, alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider forUserId={userId}>
-            <TreasuryProvider>
-                <CmsProvider>
-                    <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
-                        <FeatureFlagProvider>
-                            <RoleProvider>
-                                <MonthlyBudgetProvider>
-                                    <BalanceProvider alias={alias}>
-                                        <BnplProvider alias={alias}>
-                                            <IslamicFinancingProvider alias={alias}>
-                                                <AvatarProvider alias={alias}>
-                                                    <ContactsProvider alias={alias}>
-                                                        <VirtualCardProvider alias={alias}>
-                                                            <VaultsProvider alias={alias}>
-                                                                <TontineProvider alias={alias}>
-                                                                    <RecurringPaymentsProvider alias={alias}>
-                                                                        {children}
-                                                                    </RecurringPaymentsProvider>
-                                                                </TontineProvider>
-                                                            </VaultsProvider>
-                                                        </VirtualCardProvider>
-                                                    </ContactsProvider>
-                                                </AvatarProvider>
-                                            </IslamicFinancingProvider>
-                                        </BnplProvider>
-                                    </BalanceProvider>
-                                </MonthlyBudgetProvider>
-                            </RoleProvider>
-                        </FeatureFlagProvider>
-                    </ProductProvider>
-                </CmsProvider>
-            </TreasuryProvider>
-        </TransactionsProvider>
+        <UserManagementProvider allUsers={allMockUsers}>
+            <TransactionsProvider forUserId={userId}>
+                <TreasuryProvider>
+                    <CmsProvider>
+                        <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
+                            <FeatureFlagProvider>
+                                <RoleProvider>
+                                    <MonthlyBudgetProvider>
+                                        <BalanceProvider alias={alias}>
+                                            <BnplProvider alias={alias}>
+                                                <IslamicFinancingProvider alias={alias}>
+                                                    <AvatarProvider alias={alias}>
+                                                        <ContactsProvider alias={alias}>
+                                                            <VirtualCardProvider alias={alias}>
+                                                                <VaultsProvider alias={alias}>
+                                                                    <TontineProvider alias={alias}>
+                                                                        <RecurringPaymentsProvider alias={alias}>
+                                                                            {children}
+                                                                        </RecurringPaymentsProvider>
+                                                                    </TontineProvider>
+                                                                </VaultsProvider>
+                                                            </VirtualCardProvider>
+                                                        </ContactsProvider>
+                                                    </AvatarProvider>
+                                                </IslamicFinancingProvider>
+                                            </BnplProvider>
+                                        </BalanceProvider>
+                                    </MonthlyBudgetProvider>
+                                </RoleProvider>
+                            </FeatureFlagProvider>
+                        </ProductProvider>
+                    </CmsProvider>
+                </TreasuryProvider>
+            </TransactionsProvider>
+        </UserManagementProvider>
     )
 }
 
