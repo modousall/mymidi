@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -87,9 +86,6 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
                 
                 // Use non-blocking setDoc with contextual error handling
                 setDoc(userDocRef, userData)
-                    .then(() => {
-                         console.log("Superadmin account created in Firebase Auth and Firestore.");
-                    })
                     .catch(async (serverError) => {
                         const permissionError = new FirestorePermissionError({
                             path: userDocRef.path,
@@ -320,41 +316,63 @@ function AuthWrapper() {
 
     const handleLogin = (loginAlias: string, pin: string) => {
         if (!firestore || !auth) return;
-        const password = `${pin}${pin}`;
         
-        const usersRef = collection(firestore, 'users');
-        const q = query(usersRef, where("phoneNumber", "==", loginAlias));
+        const isEmail = loginAlias.includes('@');
+        const password = `${pin}${pin}`;
 
-        getDocs(q).then(querySnapshot => {
-            if (querySnapshot.empty) {
-                toast({ title: "Alias non trouvé", variant: "destructive" });
-                return;
-            }
-
-            const userDoc = querySnapshot.docs[0];
-            const userData = userDoc.data();
-
-            if (userData.isSuspended) {
-                toast({ title: "Compte Suspendu", variant: "destructive" });
-                return;
-            }
-
-            signInWithEmailAndPassword(auth, userData.email, password)
-                .then((userCredential) => {
-                    toast({ title: `Bienvenue, ${userData.firstName} !` });
-                })
-                .catch((error) => {
-                    console.error("Firebase sign-in error:", error);
-                    toast({
-                        title: "Erreur de Connexion",
-                        description: "Le code PIN est peut-être incorrect.",
-                        variant: "destructive",
-                    });
+        const handleAuthError = (error: any) => {
+            console.error("Firebase sign-in error:", error);
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                toast({
+                    title: "Erreur de Connexion",
+                    description: "L'identifiant ou le code PIN est incorrect.",
+                    variant: "destructive",
                 });
-        }).catch(error => {
-             console.error("Error fetching user for login:", error);
-             toast({ title: "Erreur de base de données", variant: "destructive" });
-        });
+            } else {
+                toast({
+                    title: "Erreur de Connexion",
+                    description: error.message || "Une erreur inconnue est survenue.",
+                    variant: "destructive",
+                });
+            }
+        };
+    
+        if (isEmail) {
+            // Login with email
+            signInWithEmailAndPassword(auth, loginAlias, password)
+                .then(userCredential => {
+                    toast({ title: "Connexion réussie !" });
+                })
+                .catch(handleAuthError);
+        } else {
+            // Login with phone number alias
+            const usersRef = collection(firestore, 'users');
+            const q = query(usersRef, where("phoneNumber", "==", loginAlias));
+    
+            getDocs(q).then(querySnapshot => {
+                if (querySnapshot.empty) {
+                    toast({ title: "Alias non trouvé", description: "Aucun utilisateur trouvé avec ce numéro.", variant: "destructive" });
+                    return;
+                }
+    
+                const userDoc = querySnapshot.docs[0];
+                const userData = userDoc.data();
+    
+                if (userData.isSuspended) {
+                    toast({ title: "Compte Suspendu", description: "Ce compte est suspendu.", variant: "destructive" });
+                    return;
+                }
+    
+                signInWithEmailAndPassword(auth, userData.email, password)
+                    .then(userCredential => {
+                        toast({ title: `Bienvenue, ${userData.firstName} !` });
+                    })
+                    .catch(handleAuthError);
+            }).catch(error => {
+                 console.error("Error fetching user for login:", error);
+                 toast({ title: "Erreur de base de données", description: "Impossible de vérifier l'alias.", variant: "destructive" });
+            });
+        }
     }
   
     const renderContent = () => {
