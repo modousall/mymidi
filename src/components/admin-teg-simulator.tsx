@@ -342,5 +342,3 @@ export default function AdminTegSimulator() {
         </DialogContent>
     );
 }
-
-    
