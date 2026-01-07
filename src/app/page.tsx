@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -111,8 +112,12 @@ const AppProviders = ({ userId, alias, children }: { userId: string, alias: stri
     const userManagementValue = {
         users: allMockUsers,
         changeUserPin: (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
-            console.warn("PIN change is not implemented in simulation mode.");
-            return {success: false, message: "Non implémenté en mode simulation."};
+            if (oldPin.length === 4 && /^\d+$/.test(oldPin)) {
+                console.log(`PIN for ${alias} verified successfully (simulation).`);
+                return { success: true, message: "PIN vérifié (simulation)." };
+            }
+            console.warn("PIN verification failed in simulation mode.");
+            return {success: false, message: "PIN incorrect (simulation)."};
         }
     };
 
