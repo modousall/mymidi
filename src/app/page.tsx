@@ -360,8 +360,7 @@ function AuthWrapper() {
             signInWithEmailAndPassword(auth, loginIdentifier, secret)
                 .catch(handleAuthError);
         } else {
-            // For phone number alias, the 'secret' is a PIN, so we construct the password
-            const password = `${secret}${secret}`;
+            // For phone number alias, we first need to find the user's email
             const usersRef = collection(firestore, 'users');
             const q = query(usersRef, where("phoneNumber", "==", loginIdentifier));
     
@@ -374,14 +373,24 @@ function AuthWrapper() {
                 const userDoc = querySnapshot.docs[0];
                 const userData = userDoc.data();
     
+                // The 'secret' for phone login is a PIN, so we construct the password
+                const password = `${secret}${secret}`;
+                
                 signInWithEmailAndPassword(auth, userData.email, password)
                     .catch(handleAuthError);
             }).catch(error => {
+                 // This catch block is for when the getDocs() query itself fails due to permissions.
                  const contextualError = new FirestorePermissionError({
                     path: 'users',
                     operation: 'list'
                  });
-                 errorEmitter.emit('permission-error', contextualError);
+                 // We are showing the detailed error to the user/agent for debugging purposes.
+                 // In a real production app, you might want a more generic message.
+                 toast({
+                    title: "Erreur de permission",
+                    description: contextualError.message,
+                    variant: "destructive",
+                });
             });
         }
     }
@@ -391,6 +400,7 @@ function AuthWrapper() {
             return <div className="flex h-screen items-center justify-center">Chargement...</div>;
         }
 
+        // Authenticated user flows
         if (userInfo && user) {
             return (
                 <AppProviders alias={userInfo.alias}>
