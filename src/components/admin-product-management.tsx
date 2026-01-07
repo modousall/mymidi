@@ -18,7 +18,7 @@ import { Switch } from './ui/switch';
 import { toast } from '@/hooks/use-toast';
 import AdminProductDetail from './admin-product-detail';
 import { formatCurrency } from '@/lib/utils';
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, TransactionsProvider } from "@/hooks/use-transactions";
 import type { Transaction } from '@/hooks/use-transactions';
 
 const productSchema = z.object({
