@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from 'react';
@@ -32,11 +31,10 @@ const statusConfig: Record<BnplStatus, { text: string; badgeVariant: 'default' |
 };
 
 type MyFinancingRequestsProps = {
-    onBack?: () => void;
     isStandalone?: boolean;
 };
 
-export default function MyFinancingRequests({ onBack, isStandalone = true }: MyFinancingRequestsProps) {
+export default function MyFinancingRequests({ isStandalone = true }: MyFinancingRequestsProps) {
     const { myRequests: myBnplRequests } = useBnpl();
     const { myRequests: myFinancingRequests } = useIslamicFinancing();
 
@@ -62,8 +60,8 @@ export default function MyFinancingRequests({ onBack, isStandalone = true }: MyF
             <TableBody>
                 {allMyRequests.map(req => {
                     const isBnpl = req.type === 'BNPL';
-                    const bnplReq = isBnpl ? (req as BnplRequest) : null;
-                    const finReq = !isBnpl ? (req as FinancingRequest) : null;
+                    const bnplReq = isBnpl ? (req as any) : null;
+                    const finReq = !isBnpl ? (req as any) : null;
 
                     return (
                         <Dialog key={req.id}>
@@ -84,9 +82,9 @@ export default function MyFinancingRequests({ onBack, isStandalone = true }: MyF
                                     </TableCell>
                                 </TableRow>
                             </DialogTrigger>
-                            <DialogContent>
-                                {isBnpl && bnplReq && <CreditRequestDetails request={bnplReq} onBack={() => {}} />}
-                                {!isBnpl && finReq && <FinancingRequestDetails request={finReq} onBack={() => {}}/>}
+                             <DialogContent className="max-w-2xl">
+                                {isBnpl && bnplReq && <CreditRequestDetails request={bnplReq} />}
+                                {!isBnpl && finReq && <FinancingRequestDetails request={finReq} />}
                             </DialogContent>
                         </Dialog>
                     )
@@ -99,7 +97,6 @@ export default function MyFinancingRequests({ onBack, isStandalone = true }: MyF
         return (
             <div>
                  <div className="flex items-center gap-4 mb-6">
-                    {onBack && <Button onClick={onBack} variant="ghost" size="icon"><ArrowLeft /></Button>}
                     <div>
                         <h2 className="text-2xl font-bold text-primary">Mes Demandes de Financement</h2>
                         <p className="text-muted-foreground">Consultez l'historique et le statut de vos demandes.</p>

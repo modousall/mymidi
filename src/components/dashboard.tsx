@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -15,7 +14,6 @@ import Settings from './settings';
 import MerchantList from './merchant-list';
 import Financing from './financing';
 import Epargne from './epargne';
-import MyFinancingRequests from './my-financing-requests';
 import WithdrawOptions from './withdraw-options';
 import Paiement from './paiement';
 
