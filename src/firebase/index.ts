@@ -2,7 +2,7 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { Auth, getAuth } from 'firebase/auth';
+import { Auth, getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore'
 
 // This function is designed to be called ONCE on the client side.
@@ -10,18 +10,25 @@ import { getFirestore, Firestore } from 'firebase/firestore'
 export function initializeFirebase(): { firebaseApp: FirebaseApp, auth: Auth, firestore: Firestore } {
   if (getApps().length) {
     const app = getApp();
+    const auth = getAuth(app);
+    // It's safe to call this again on subsequent loads.
+    setPersistence(auth, browserLocalPersistence);
     return {
       firebaseApp: app,
-      auth: getAuth(app),
+      auth: auth,
       firestore: getFirestore(app),
     }
   }
 
   const firebaseApp = initializeApp(firebaseConfig);
+  const auth = getAuth(firebaseApp);
+  
+  // 🔐 LOCAL PERSISTENCE (SURVIVES REFRESH)
+  setPersistence(auth, browserLocalPersistence);
   
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
+    auth: auth,
     firestore: getFirestore(firebaseApp)
   };
 }
