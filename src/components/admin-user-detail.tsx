@@ -29,7 +29,7 @@ import { fr } from 'date-fns/locale';
 import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { collection, updateDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/hooks/use-transactions';
 import { TransactionsProvider } from '@/hooks/use-transactions';
 
@@ -39,18 +39,26 @@ import Vaults from './vaults';
 import Tontine from './tontine';
 import VirtualCard from './virtual-card';
 
-const RoleManagementDialog = ({ user, onClose }: { user: any, onClose: () => void }) => {
+const RoleManagementDialog = ({ user, onClose, onUpdate }: { user: any, onClose: () => void, onUpdate: (id: string, data: Partial<ManagedUser>) => void }) => {
     const [selectedRole, setSelectedRole] = useState(user.role);
     const { toast } = useToast();
+    const firestore = useFirestore();
 
-    const handleSaveRole = () => {
-        if (selectedRole) {
-             console.log(`Updating role for ${user.alias} to ${selectedRole}`);
-            toast({
-                title: "Rôle mis à jour",
-                description: `Le rôle de ${user.firstName} a été changé en "${selectedRole}".`
-            });
-            onClose();
+    const handleSaveRole = async () => {
+        if (selectedRole && firestore) {
+            const userDocRef = doc(firestore, 'users', user.id);
+            try {
+                await updateDoc(userDocRef, { role: selectedRole });
+                onUpdate(user.id, { role: selectedRole });
+                toast({
+                    title: "Rôle mis à jour",
+                    description: `Le rôle de ${user.firstName} a été changé en "${selectedRole}".`
+                });
+                onClose();
+            } catch (error) {
+                console.error("Error updating role: ", error);
+                toast({ title: "Erreur de mise à jour", description: "Impossible de changer le rôle.", variant: "destructive" });
+            }
         }
     };
 
@@ -90,7 +98,7 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
     const [newPin, setNewPin] = useState("");
     const { toast } = useToast();
     
-    const handleReset = () => {
+    const handleReset = async () => {
         if(newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
             toast({
                 title: "Code PIN invalide",
@@ -99,11 +107,16 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
             });
             return;
         }
-        console.log(`Resetting PIN for ${user.alias}`);
+        
+        // This is a sensitive operation. In a real app, this would be an admin SDK call on the backend.
+        // We simulate the frontend part of this action.
+        console.log(`Simulating PIN reset for user ${user.id} with new PIN: ${newPin}`);
+        
         toast({
-            title: "Code PIN réinitialisé",
-            description: `Le code PIN pour ${user.firstName} a été mis à jour.`
+            title: "Réinitialisation du PIN (Simulation)",
+            description: `Le PIN pour ${user.firstName} a été mis à jour. L'utilisateur devra utiliser le nouveau PIN.`
         });
+        
         onClose();
     }
     
@@ -141,7 +154,7 @@ const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: 
     return (
         <FeatureFlagProvider>
             <AvatarProvider alias={user.alias}>
-                <TransactionsProvider userId={user.id}>
+                <TransactionsProvider>
                     <BalanceProvider alias={user.alias}>
                         <BnplProvider alias={user.alias}>
                             <ContactsProvider alias={user.alias}>
@@ -230,7 +243,7 @@ const MerchantCreditDetails = ({ requests }: { requests: BnplRequest[] }) => (
 )
 
 
-export default function AdminUserDetail({ user, onBack, onUpdate }: { user: ManagedUser, onBack: () => void, onUpdate: () => void }) {
+export default function AdminUserDetail({ user, onBack, onUpdate }: { user: ManagedUser, onBack: () => void, onUpdate: (id: string, data: Partial<ManagedUser>) => void }) {
     const { toast } = useToast();
     const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -244,7 +257,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
         return collection(firestore, `users/${user.id}/transactions`);
     }, [firestore, user]);
     
-    const { data: userTransactions } = useCollection<Transaction>(transactionsCollectionRef);
+    const { data: userTransactions } = useCollection<Transaction>(transactionsCollectionRef as any);
 
     const todaysRevenue = useMemo(() => {
         if (!userTransactions) return 0;
@@ -277,14 +290,21 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
     const totalTontinesBalance = useMemo(() => (user as any).tontines?.reduce((acc: number, tontine: any) => acc + (tontine.amount * tontine.participants.length), 0) || 0, [user]);
     const virtualCardBalance = useMemo(() => (user as any).virtualCard?.balance ?? 0, [user]);
 
-    const handleToggleSuspension = () => {
-        // toggleUserSuspension(user.alias, !user.isSuspended); // This needs to be reimplemented
-        console.log(`Toggling suspension for ${user.alias}`);
-        toast({
-            title: `Utilisateur ${!user.isSuspended ? 'suspendu' : 'réactivé'}`,
-            description: `${user.firstName} a été ${!user.isSuspended ? 'suspendu' : 'réactivé'}.`
-        });
-        onUpdate(); 
+    const handleToggleSuspension = async () => {
+        if (!firestore) return;
+        const newSuspensionState = !user.isSuspended;
+        const userDocRef = doc(firestore, 'users', user.id);
+        try {
+            await updateDoc(userDocRef, { isSuspended: newSuspensionState });
+            onUpdate(user.id, { isSuspended: newSuspensionState });
+            toast({
+                title: `Utilisateur ${newSuspensionState ? 'suspendu' : 'réactivé'}`,
+                description: `${user.firstName} a été ${newSuspensionState ? 'suspendu' : 'réactivé'}.`
+            });
+        } catch (error) {
+            console.error("Error updating suspension state: ", error);
+            toast({ title: "Erreur", description: "Impossible de modifier le statut de l'utilisateur.", variant: "destructive" });
+        }
     }
     
     const handleScrollToTransactions = () => {
@@ -356,7 +376,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
                                                     <Edit className="h-3 w-3" />
                                                 </Button>
                                             </DialogTrigger>
-                                            {isRoleDialogOpen && <RoleManagementDialog user={user} onClose={() => { setIsRoleDialogOpen(false); onUpdate(); }} />}
+                                            {isRoleDialogOpen && <RoleManagementDialog user={user} onClose={() => setIsRoleDialogOpen(false)} onUpdate={onUpdate} />}
                                         </Dialog>
                                     </div>
                             </div>
@@ -423,7 +443,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
                                     <CardTitle>
                                         {activeServiceView === 'transactions' && "Historique des transactions"}
                                         {activeServiceView === 'ma-carte' && "Gestion de la Carte Virtuelle"}
-                                        {activeServiceView === 'coffres' && "Gestion des Coffres"}
+                                        {activeServiceiview === 'coffres' && "Gestion des Coffres"}
                                         {activeServiceView === 'tontine' && "Gestion des Tontines"}
                                         {activeServiceView === 'credit-details' && `Crédits Marchands pour ${userName}`}
                                     </CardTitle>
@@ -444,3 +464,5 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
         </UserServiceProvider>
     )
 }
+
+    
