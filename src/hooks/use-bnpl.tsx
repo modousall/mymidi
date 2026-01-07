@@ -50,7 +50,7 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { transactions, addTransaction } = useTransactions();
   const { balance, debit, credit } = useBalance();
-  const { users } = useUserManagement();
+  const { users, usersWithTransactions } = useUserManagement();
 
   useEffect(() => {
     try {
@@ -108,10 +108,11 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
   const submitRequest = async (payload: SubmitRequestPayload, clientAlias?: string): Promise<BnplAssessmentOutput> => {
       const targetAlias = clientAlias || alias;
       
-      // In a real app, you'd fetch this data from the backend for the targetAlias
       const user = users.find(u => u.alias === targetAlias);
+      const userWithTx = usersWithTransactions.find(u => u.alias === targetAlias);
+      
       const userBalance = user ? user.balance : balance;
-      const userTransactions = user ? user.transactions : transactions;
+      const userTransactions = userWithTx ? userWithTx.transactions : transactions;
 
 
       const transactionHistory = userTransactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
@@ -147,9 +148,6 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
       setAllRequests(prev => [...prev, newRequest]);
       
       if (assessmentResult.status === 'approved') {
-          // This logic now needs to handle transactions for a potentially different user
-          // For simplicity in this prototype, we'll assume the action is on the currently logged-in user if no clientAlias is passed.
-          // A real implementation would require backend transactions.
           if (targetAlias === alias) {
              if(payload.downPayment && payload.downPayment > 0) {
                 debit(payload.downPayment);

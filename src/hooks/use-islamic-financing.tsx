@@ -38,7 +38,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
   const [isInitialized, setIsInitialized] = useState(false);
   const { transactions, addTransaction } = useTransactions();
   const { balance, credit } = useBalance();
-  const { users } = useUserManagement();
+  const { users, usersWithTransactions } = useUserManagement();
 
   useEffect(() => {
     try {
@@ -70,8 +70,10 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
   const submitRequest = async (payload: SubmitRequestPayload, clientAlias?: string): Promise<IslamicFinancingOutput> => {
       const targetAlias = clientAlias || alias;
       const user = users.find(u => u.alias === targetAlias);
+      const userWithTx = usersWithTransactions.find(u => u.alias === targetAlias);
+      
       const userBalance = user ? user.balance : balance;
-      const userTransactions = user ? user.transactions : transactions;
+      const userTransactions = userWithTx ? userWithTx.transactions : transactions;
       
       const transactionHistory = userTransactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
 
