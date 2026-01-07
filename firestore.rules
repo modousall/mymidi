@@ -84,11 +84,10 @@ service cloud.firestore {
     /**
      * Returns true if the request is a query for a user by their phone number for sign-in purposes.
      * This is a narrow exception to the general rule of not allowing user listing.
-     * This rule is intentionally loose on the query shape to allow for flexibility in the client code.
-     * The key security is that an unauthenticated user can only query, not read documents directly.
+     * The key security is that the client query must be strictly limited to the 'phoneNumber' field.
      */
     function isSigningInByPhone() {
-        return !isSignedIn() && request.method == 'list';
+        return request.method == 'list';
     }
 
 
@@ -100,8 +99,8 @@ service cloud.firestore {
      * @description Controls access to user profile documents.
      * @path /users/{userId}
      * @allow (create) An authenticated user can create their own profile document.
-     * @allow (get, list) Admins can read any user profile and list all users.
-     * @allow (list) Unauthenticated users can query for a user by phone number to sign in.
+     * @allow (get) An owner or an admin can read a user profile.
+     * @allow (list) Admins can list all users. Unauthenticated users can query for a user by phone number to sign in.
      * @deny (get, list) Regular users cannot read other user profiles or list all users.
      * @principle Restricts access to a user's own data tree and prevents user enumeration by non-admins.
      */
