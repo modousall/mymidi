@@ -23,7 +23,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ScrollArea } from './ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import TegScheduleReceipt from './teg-schedule-receipt';
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
 
@@ -153,6 +152,7 @@ export default function AdminTegSimulator() {
     
     const handleDownloadPDF = async () => {
         setIsDownloading(true);
+        const { jsPDF } = await import('jspdf');
         if (receiptRef.current) {
             try {
                 const canvas = await html2canvas(receiptRef.current, { scale: 3 });
