@@ -70,13 +70,20 @@ export const useUserManagement = () => {
             const virtualCardTxDataString = localStorage.getItem(`midi_virtual_card_txs_${alias}`);
             
             const balance = balanceDataString ? JSON.parse(balanceDataString) : 0;
-            const transactions = transactionsDataString ? JSON.parse(transactionsDataString) : [];
+            const transactions: Transaction[] = transactionsDataString ? JSON.parse(transactionsDataString) : [];
             const vaults = vaultsDataString ? JSON.parse(vaultsDataString) : [];
             const tontines = tontinesDataString ? JSON.parse(tontinesDataString) : [];
             const virtualCardDetails = virtualCardDataString ? JSON.parse(virtualCardDataString) : null;
             const virtualCardTxs = virtualCardTxDataString ? JSON.parse(virtualCardTxDataString) : [];
             
             const virtualCard = virtualCardDetails ? { ...virtualCardDetails, transactions: virtualCardTxs } : null;
+
+            // Ensure global uniqueness for transaction keys in admin views
+            const uniqueTransactions = transactions.map(tx => ({
+                ...tx,
+                id: `${alias}-${tx.id}`
+            }));
+
 
             const managedUser = {
               name: userData.name,
@@ -88,7 +95,7 @@ export const useUserManagement = () => {
               role: userData.role || 'user',
             };
 
-            loadedUsersWithDetails.push({ ...managedUser, transactions, vaults, tontines, virtualCard });
+            loadedUsersWithDetails.push({ ...managedUser, transactions: uniqueTransactions, vaults, tontines, virtualCard });
 
           } catch (e) {
             console.error(`Failed to parse data for user ${alias}`, e);
@@ -214,4 +221,3 @@ export const useUserManagement = () => {
 
   return { users, usersWithTransactions, toggleUserSuspension, resetUserPin, addUser, updateUserRole, changeUserPin, refreshUsers: loadUsers, addTransactionForUser };
 };
-
