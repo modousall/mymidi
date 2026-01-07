@@ -2,15 +2,13 @@
 "use client";
 
 import * as React from "react"
-import { Building, Check, ChevronsUpDown, User, Phone, Loader2 } from "lucide-react"
+import { Building, Check, ChevronsUpDown, User, Phone, Loader2, Landmark } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useContacts } from "@/hooks/use-contacts";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from 'firebase/firestore';
-import type { ManagedUser } from "@/lib/types";
+import { useProductManagement } from "@/hooks/use-product-management";
 
 type AliasSelectorProps = {
     value: string;
@@ -22,14 +20,8 @@ type AliasSelectorProps = {
 export function AliasSelector({ value, onChange, disabled = false, filter = 'all' }: AliasSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const { contacts } = useContacts();
-  const firestore = useFirestore();
+  const { mobileMoneyOperators } = useProductManagement();
 
-  const merchantsQuery = useMemoFirebase(() => {
-    if (!firestore || filter === 'user') return null;
-    return query(collection(firestore, 'users'), where('role', '==', 'merchant'));
-  }, [firestore, filter]);
-
-  const { data: merchantsData, isLoading: isLoadingMerchants } = useCollection<ManagedUser>(merchantsQuery);
 
   const suggestions = React.useMemo(() => {
     const contactSuggestions = filter !== 'merchant' 
@@ -41,15 +33,12 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
         })) 
         : [];
 
-    const merchantSuggestions = (merchantsData || []).map(u => {
-        const publicIdentifier = u.merchantCode || u.alias;
-        return {
-            value: publicIdentifier!,
-            label: `${u.name} (Marchand)`,
-            search: `${u.name} ${publicIdentifier}`,
-            type: 'merchant' as const
-        }
-    });
+    const merchantSuggestions = (mobileMoneyOperators || []).map(op => ({
+        value: op.alias || op.name,
+        label: `${op.name} (Service)`,
+        search: `${op.name} ${op.alias}`,
+        type: 'merchant' as const
+    }));
     
     const allSuggestions = [...contactSuggestions, ...merchantSuggestions];
 
@@ -59,10 +48,10 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
 
     return uniqueSuggestions;
 
-  }, [merchantsData, contacts, filter]);
+  }, [mobileMoneyOperators, contacts, filter]);
 
   const getIcon = (type: 'contact' | 'user' | 'merchant') => {
-      if (type === 'merchant') return <Building className="mr-2 h-4 w-4 text-muted-foreground"/>;
+      if (type === 'merchant') return <Landmark className="mr-2 h-4 w-4 text-muted-foreground"/>;
       if (type === 'contact') return <User className="mr-2 h-4 w-4 text-muted-foreground"/>;
       return <User className="mr-2 h-4 w-4 text-muted-foreground"/>;
   }
@@ -75,15 +64,13 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={disabled || isLoadingMerchants}
+          disabled={disabled}
         >
-          {isLoadingMerchants ? (
-            <div className="flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Chargement...</div>
-          ) : (
-            value
+          
+            {value
             ? suggestions.find((s) => s.value === value)?.label || value
-            : "Sélectionnez ou saisissez..."
-          )}
+            : "Sélectionnez ou saisissez..."}
+          
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

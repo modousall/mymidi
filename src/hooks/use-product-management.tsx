@@ -12,6 +12,7 @@ export type ProductItem = {
     fee: number;
     commission: number;
     isActive: boolean;
+    alias?: string; // Added alias for selection
 };
 
 type ProductContextType = {
@@ -31,18 +32,18 @@ type ProductContextType = {
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
 const initialBillers: ProductItem[] = [
-    { id: "SENELEC", name: "SENELEC - Électricité", fee: 150, commission: 50, isActive: true },
-    { id: "SDE", name: "SDE - Eau", fee: 150, commission: 50, isActive: true },
-    { id: "Orange", name: "Orange - Internet / Mobile", fee: 0, commission: 10, isActive: true },
-    { id: "Free", name: "Free - Internet / Mobile", fee: 0, commission: 12, isActive: true },
-    { id: "Canal+", name: "Canal+ - TV", fee: 200, commission: 75, isActive: false },
+    { id: "SENELEC", name: "SENELEC - Électricité", fee: 150, commission: 50, isActive: true, alias: 'SENELEC' },
+    { id: "SDE", name: "SDE - Eau", fee: 150, commission: 50, isActive: true, alias: 'SDE' },
+    { id: "Orange", name: "Orange - Internet / Mobile", fee: 0, commission: 10, isActive: true, alias: 'Orange' },
+    { id: "Free", name: "Free - Internet / Mobile", fee: 0, commission: 12, isActive: true, alias: 'Free' },
+    { id: "Canal+", name: "Canal+ - TV", fee: 200, commission: 75, isActive: false, alias: 'Canal+' },
 ];
 
 const initialMobileMoneyOperators: ProductItem[] = [
-    { id: "Wave", name: "Wave", fee: 0, commission: 15, isActive: true },
-    { id: "Orange Money", name: "Orange Money", fee: 0, commission: 20, isActive: true },
-    { id: "Free Money", name: "Free Money", fee: 0, commission: 18, isActive: true },
-    { id: "Wizall", name: "Wizall Money", fee: 100, commission: 30, isActive: false },
+    { id: "Wave", name: "Wave", fee: 0, commission: 15, isActive: true, alias: 'Wave' },
+    { id: "Orange Money", name: "Orange Money", fee: 0, commission: 20, isActive: true, alias: 'OrangeMoney' },
+    { id: "Free Money", name: "Free Money", fee: 0, commission: 18, isActive: true, alias: 'FreeMoney' },
+    { id: "Wizall", name: "Wizall Money", fee: 100, commission: 30, isActive: false, alias: 'Wizall' },
 ];
 
 const billersStorageKey = 'midi_product_billers';
