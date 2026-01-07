@@ -6,9 +6,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { islamicFinancingAssessment } from '@/ai/flows/islamic-financing-flow';
 import { useTransactions } from './use-transactions';
 import { useBalance } from './use-balance';
-import { toast } from './use-toast';
 import type { FinancingRequest, IslamicFinancingOutput, IslamicFinancingInput } from '@/lib/types';
 import { useUserManagement } from './use-user-management';
+import { toast } from './use-toast';
 
 type SubmitRequestPayload = {
     financingType: string;
@@ -94,6 +94,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
           status: assessmentResult.status,
           reason: assessmentResult.reason,
           repaymentPlan: assessmentResult.repaymentPlan,
+          scores: assessmentResult.scores,
           requestDate: new Date().toISOString(),
       };
       
@@ -184,5 +185,3 @@ export const useIslamicFinancing = () => {
   }
   return context;
 };
-
-    

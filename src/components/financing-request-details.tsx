@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import type { FinancingRequest, FinancingStatus } from "@/lib/types";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Check, X, Hourglass, Info, Download, FileText } from 'lucide-react';
+import { Check, X, Hourglass, Info, Download, FileText, User, Activity, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
@@ -26,6 +27,17 @@ const DetailRow = ({ label, value }: { label: string, value: string | React.Reac
         <span className="font-medium text-right">{value}</span>
     </div>
 );
+
+const ScoreCard = ({ title, score, icon }: { title: string, score: { value: number, explanation: string }, icon: React.ReactNode }) => (
+    <div className="p-3 border rounded-lg">
+        <div className="flex items-center justify-between mb-1">
+            <h4 className="font-semibold text-sm flex items-center gap-2">{icon}{title}</h4>
+            <Badge variant="outline" className="text-base">{score.value}/100</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">{score.explanation}</p>
+    </div>
+);
+
 
 export default function FinancingRequestDetails({ request }: { request: FinancingRequest }) {
     const statusInfo = statusConfig[request.status];
@@ -61,10 +73,22 @@ export default function FinancingRequestDetails({ request }: { request: Financin
                 
                 <Alert variant={request.status === 'rejected' ? 'destructive' : 'default'}>
                     <Info className="h-4 w-4" />
-                    <AlertTitle className="font-bold">Justification du Moteur de Décision</AlertTitle>
+                    <AlertTitle className="font-bold">Justification Globale du Moteur de Décision</AlertTitle>
                     <AlertDescription>{request.reason}</AlertDescription>
                 </Alert>
                 
+                {request.scores && (
+                    <div className="space-y-3 pt-4 border-t">
+                        <h3 className="font-bold text-base">Score-360 MiDi (Explicable)</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <ScoreCard title="Socio-Pro/Éthique" score={request.scores.socialProfessional} icon={<User />} />
+                            <ScoreCard title="Activité" score={request.scores.activity} icon={<Activity />} />
+                            <ScoreCard title="Comportemental" score={request.scores.behavioral} icon={<BrainCircuit />} />
+                            <ScoreCard title="Risque Global" score={request.scores.risk} icon={<AlertTriangle />} />
+                        </div>
+                    </div>
+                )}
+
                 {request.status === 'approved' && request.repaymentPlan && (
                     <div className="space-y-4 pt-4 border-t">
                         <h4 className="font-semibold">Plan de Remboursement</h4>

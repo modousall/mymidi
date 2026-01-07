@@ -6,11 +6,11 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { assessBnplApplication } from '@/ai/flows/bnpl-assessment-flow';
 import { useTransactions } from './use-transactions';
 import { useBalance } from './use-balance';
-import { toast } from './use-toast';
 import type { BnplRequest, BnplAssessmentOutput, BnplAssessmentInput } from '@/lib/types';
 import type { ManagedUser } from '@/hooks/use-user-management';
 import { formatCurrency } from '@/lib/utils';
 import { useUserManagement } from './use-user-management';
+import { toast } from './use-toast';
 
 type SubmitRequestPayload = {
     merchantAlias: string;
@@ -139,6 +139,7 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
           status: assessmentResult.status,
           reason: assessmentResult.reason,
           repaymentPlan: assessmentResult.repaymentPlan,
+          scores: assessmentResult.scores,
           requestDate: new Date().toISOString(),
           repaidAmount: 0,
       };
@@ -339,5 +340,3 @@ export const useBnpl = () => {
   }
   return context;
 };
-
-    

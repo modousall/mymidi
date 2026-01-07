@@ -1,6 +1,19 @@
 
 import { z } from 'zod';
 
+const ScoreDetailSchema = z.object({
+  value: z.number().describe('La valeur numérique du score, généralement sur 100.'),
+  explanation: z.string().describe('Une brève explication sur la manière dont le score a été calculé.'),
+});
+
+const Score360Schema = z.object({
+    socialProfessional: ScoreDetailSchema.describe('Score basé sur des facteurs socio-professionnels.'),
+    activity: ScoreDetailSchema.describe("Score basé sur l'activité et l'historique transactionnel."),
+    behavioral: ScoreDetailSchema.describe('Score basé sur le comportement financier (ex: remboursements, épargne).'),
+    risk: ScoreDetailSchema.describe('Score global de risque calculé à partir des autres scores.'),
+});
+
+
 // BNPL (Buy Now, Pay Later) Schemas and Types
 export const BnplAssessmentInputSchema = z.object({
   alias: z.string().describe('The user alias applying for BNPL.'),
@@ -31,6 +44,7 @@ export const BnplAssessmentOutputSchema = z.object({
     ),
   reason: z.string().describe('A brief reason for the decision.'),
   repaymentPlan: z.string().optional().describe('A suggested repayment plan if approved.'),
+  scores: Score360Schema.optional().describe("Détail du Score-360 pour cette demande."),
 });
 export type BnplAssessmentOutput = z.infer<typeof BnplAssessmentOutputSchema>;
 
@@ -46,6 +60,7 @@ export type BnplRequest = {
     repaymentPlan?: string;
     requestDate: string;
     repaidAmount?: number;
+    scores?: z.infer<typeof Score360Schema>;
 };
 
 
@@ -66,6 +81,7 @@ export const IslamicFinancingOutputSchema = z.object({
   status: z.enum(['approved', 'rejected', 'review']).describe('The assessment status of the application.'),
   reason: z.string().describe('A brief reason for the decision.'),
   repaymentPlan: z.string().optional().describe('A suggested repayment plan if approved, including monthly installments and total amount.'),
+  scores: Score360Schema.optional().describe("Détail du Score-360 pour cette demande de financement."),
 });
 export type IslamicFinancingOutput = z.infer<typeof IslamicFinancingOutputSchema>;
 
@@ -82,4 +98,5 @@ export type FinancingRequest = {
     reason: string;
     repaymentPlan?: string;
     requestDate: string;
+    scores?: z.infer<typeof Score360Schema>;
 };
