@@ -190,7 +190,7 @@ const statusConfig: Record<BnplStatus, { text: string; badgeVariant: 'default' |
 const MerchantCreditDetails = ({ requests }: { requests: BnplRequest[] }) => (
      <Card>
         <CardHeader>
-            <CardTitle>Détail du Crédit en Cours</CardTitle>
+            <CardTitle>Historique des Crédits Marchands</CardTitle>
             <CardDescription>Liste des crédits accordés aux clients par ce marchand.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -219,7 +219,7 @@ const MerchantCreditDetails = ({ requests }: { requests: BnplRequest[] }) => (
                             </TableRow>
                         </DialogTrigger>
                         <DialogContent>
-                            <CreditRequestDetails request={req} onBack={() => {}} />
+                            <CreditRequestDetails request={req} />
                         </DialogContent>
                     </Dialog>
                 ))}
@@ -424,3 +424,5 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
         </UserServiceProvider>
     )
 }
+
+    

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -338,3 +339,5 @@ export const useBnpl = () => {
   }
   return context;
 };
+
+    
