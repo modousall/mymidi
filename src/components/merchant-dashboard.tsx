@@ -21,6 +21,7 @@ import PICASH from "./picash";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
 import RedeemCodeForm from "./redeem-code-form";
+import { useUserManagement } from "@/hooks/use-user-management";
 
 type UserInfo = {
     name: string;
@@ -117,6 +118,7 @@ export default function MerchantDashboard({ onLogout, userInfo, alias }: Merchan
     const [activeAction, setActiveAction] = useState<'none' | 'customer_withdrawal'>('none');
     const [paymentLink, setPaymentLink] = useState<string | null>(null);
     const { toast } = useToast();
+    const { users } = useUserManagement();
   
     if (activeAction === 'customer_withdrawal') {
         return (

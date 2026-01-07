@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -17,8 +16,7 @@ import { formatCurrency } from '@/lib/utils';
 import QrCodeDisplay from './qr-code-display';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { useUserManagement } from '@/hooks/use-user-management';
 import type { ManagedUser } from '@/lib/types';
 
 
@@ -47,9 +45,7 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
   const [scannedClient, setScannedClient] = useState<ManagedUser | null>(null);
   const { toast } = useToast();
   
-  const firestore = useFirestore();
-  const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: users, isLoading: isLoadingUsers } = useCollection<ManagedUser>(usersCollection);
+  const { users } = useUserManagement();
   
   const form = useForm<PicashFormValues>({
     resolver: zodResolver(picashFormSchema),
