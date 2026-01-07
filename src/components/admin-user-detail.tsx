@@ -137,17 +137,17 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
     )
 }
 
-const UserServiceProvider = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
+const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: React.ReactNode }) => {
     return (
         <FeatureFlagProvider>
-            <AvatarProvider alias={alias}>
-                 <TransactionsProvider>
-                    <BalanceProvider alias={alias}>
-                        <BnplProvider alias={alias}>
-                            <ContactsProvider alias={alias}>
-                                <VirtualCardProvider alias={alias}>
-                                    <VaultsProvider alias={alias}>
-                                        <TontineProvider alias={alias}>
+            <AvatarProvider alias={user.alias}>
+                <TransactionsProvider userId={user.id}>
+                    <BalanceProvider alias={user.alias}>
+                        <BnplProvider alias={user.alias}>
+                            <ContactsProvider alias={user.alias}>
+                                <VirtualCardProvider alias={user.alias}>
+                                    <VaultsProvider alias={user.alias}>
+                                        <TontineProvider alias={user.alias}>
                                             {children}
                                         </TontineProvider>
                                     </VaultsProvider>
@@ -316,7 +316,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
 
 
     return (
-         <UserServiceProvider alias={user.alias}>
+         <UserServiceProvider user={user}>
             <div className="space-y-6">
                 <div className="flex items-center gap-4">
                     <Button onClick={onBack} variant="outline" size="icon">

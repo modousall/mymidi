@@ -120,9 +120,9 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 
 
 // A single wrapper for all providers that depend on a user alias
-const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
+const AppProviders = ({ userId, alias, children }: { userId: string, alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider>
+        <TransactionsProvider userId={userId}>
             <TreasuryProvider>
                 <CmsProvider>
                     <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
@@ -363,7 +363,7 @@ function AuthWrapper() {
 
         if (userInfo && user) {
             return (
-                 <AppProviders alias={userInfo.alias}>
+                 <AppProviders userId={userInfo.id} alias={userInfo.alias}>
                     {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
                     {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
                     {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}

@@ -17,11 +17,7 @@ type ContactsContextType = {
 
 const ContactsContext = createContext<ContactsContextType | undefined>(undefined);
 
-const initialContacts: Contact[] = [
-    {id: '1', name: 'Maman', alias: '+221771112233'},
-    {id: '2', name: 'Boutique du coin', alias: 'boutiqueCoin'},
-    {id: '3', name: 'Papa', alias: '+221774445566'},
-];
+const initialContacts: Contact[] = [];
 
 type ContactsProviderProps = {
     children: ReactNode;

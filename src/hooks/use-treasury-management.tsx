@@ -36,19 +36,15 @@ type TreasuryContextType = {
 const TreasuryContext = createContext<TreasuryContextType | undefined>(undefined);
 
 const initialTreasuryData: TreasuryData = {
-    ownFunds: 150000000,
-    clientFunds: 850000000,
+    ownFunds: 0,
+    clientFunds: 0,
     assets: {
-        centralBank: 300000000,
-        commercialBanks: 450000000,
-        mobileMoneyOperators: 200000000,
-        foreignCorrespondents: 50000000,
+        centralBank: 0,
+        commercialBanks: 0,
+        mobileMoneyOperators: 0,
+        foreignCorrespondents: 0,
     },
-    operations: [
-        { id: 'op1', date: '2024-07-22', type: 'Virement', from: 'Fonds Propres', to: 'Banque Commerciale', amount: 25000000, status: 'Terminé', description: 'Alimentation compte' },
-        { id: 'op2', date: '2024-07-21', type: 'Dépôt', from: 'Wave', to: 'Fonds Clients', amount: 15000000, status: 'Terminé', description: 'Collecte journalière' },
-        { id: 'op3', date: '2024-07-20', type: 'Règlement', from: 'Fonds Clients', to: 'SENELEC', amount: 5000000, status: 'Terminé', description: 'Paiement factures' },
-    ]
+    operations: []
 };
 
 const treasuryStorageKey = 'midi_treasury_data';
