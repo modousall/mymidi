@@ -44,11 +44,11 @@ export default function LoginForm({ onLogin, onBack }: LoginFormProps) {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <Label htmlFor="identifier-login">E-mail</Label>
+                            <Label htmlFor="identifier-login">E-mail ou N° de téléphone</Label>
                             <Input
                                 id="identifier-login"
-                                type="email"
-                                placeholder="Entrez votre e-mail"
+                                type="text"
+                                placeholder="Entrez votre e-mail ou votre N° de téléphone"
                                 value={identifier}
                                 onChange={(e) => setIdentifier(e.target.value)}
                                 required

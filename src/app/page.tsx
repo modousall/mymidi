@@ -122,7 +122,7 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 // A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ userId, alias, children }: { userId: string, alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider userId={userId}>
+        <TransactionsProvider>
             <TreasuryProvider>
                 <CmsProvider>
                     <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
@@ -322,11 +322,13 @@ function AuthWrapper() {
         toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
     }
 
-    const handleLogin = (loginIdentifier: string, secret: string) => {
+    const handleLogin = async (loginIdentifier: string, secret: string) => {
         if (!firestore || !auth) return;
-        
-        const handleAuthError = (error: any) => {
-            console.error("Firebase sign-in error:", error);
+    
+        const password = secret.length === 4 ? `${secret}${secret}` : secret;
+    
+        const handleAuthError = (error: any, identifier: string) => {
+            console.error(`Firebase sign-in error for ${identifier}:`, error);
             if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                 toast({
                     title: "Erreur de Connexion",
@@ -342,19 +344,41 @@ function AuthWrapper() {
             }
         };
     
-        if (!loginIdentifier.includes('@')) {
-            toast({
-                title: "Connexion par e-mail requise",
-                description: "Veuillez vous connecter en utilisant votre adresse e-mail.",
-                variant: "destructive",
-            });
+        // Try signing in with email first
+        if (loginIdentifier.includes('@')) {
+            try {
+                await signInWithEmailAndPassword(auth, loginIdentifier, password);
+                // On success, the useUser hook will handle the rest
+            } catch (error) {
+                handleAuthError(error, loginIdentifier);
+            }
             return;
         }
-
-        // Always assume it's an email for login
-        const password = secret.length === 4 ? `${secret}${secret}` : secret;
-        signInWithEmailAndPassword(auth, loginIdentifier, password).catch(handleAuthError);
-    }
+    
+        // If not an email, assume it's a phone number and try to find the user's email
+        try {
+            const usersRef = collection(firestore, "users");
+            const q = query(usersRef, where("phoneNumber", "==", loginIdentifier));
+            const querySnapshot = await getDocs(q);
+    
+            if (querySnapshot.empty) {
+                handleAuthError({ code: 'auth/user-not-found' }, loginIdentifier);
+                return;
+            }
+    
+            const userDoc = querySnapshot.docs[0].data();
+            const userEmail = userDoc.email;
+    
+            if (userEmail) {
+                await signInWithEmailAndPassword(auth, userEmail, password);
+                // On success, the useUser hook will handle the rest
+            } else {
+                handleAuthError({ code: 'auth/user-not-found' }, loginIdentifier);
+            }
+        } catch (error) {
+            handleAuthError(error, loginIdentifier);
+        }
+    };
   
     const renderContent = () => {
         if (isUserLoading || (user && !userInfo)) {
