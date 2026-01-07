@@ -41,8 +41,6 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // In simulation mode (forUserId is provided), we don't rely on the authenticated user.
-  // In a real scenario, we use the authenticated user's UID.
   const targetUserId = forUserId || user?.uid;
   
   const [allLocalTransactions, setAllLocalTransactions] = useState<Transaction[]>([]);
@@ -73,9 +71,9 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
 
 
   const transactionsForCurrentUser = useMemo(() => {
-      if (!targetUserId) return [];
+      if (!targetUserId || isLocalLoading) return []; // Wait until loaded and user ID is available
       return allLocalTransactions.filter(tx => tx.userId === targetUserId);
-  }, [allLocalTransactions, targetUserId]);
+  }, [allLocalTransactions, targetUserId, isLocalLoading]);
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>, forId?: string) => {
