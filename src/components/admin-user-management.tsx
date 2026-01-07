@@ -12,7 +12,6 @@ import { Input } from "./ui/input";
 import AdminUserDetail from "./admin-user-detail";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
-import { TransactionsProvider } from "@/hooks/use-transactions";
 import { formatCurrency } from "@/lib/utils";
 import type { ManagedUser } from "@/lib/types";
 
@@ -63,11 +62,7 @@ export default function AdminUserManagement({ allUsers, refreshUsers }: AdminUse
     }
 
     if (selectedUser) {
-        return (
-            <TransactionsProvider>
-                <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
-            </TransactionsProvider>
-        )
+        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
     }
 
     return (

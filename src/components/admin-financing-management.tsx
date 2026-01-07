@@ -34,7 +34,7 @@ export default function AdminFinancingManagement({ allUsers }: { allUsers: Manag
     const filteredRequests = useMemo(() => {
         return allRequests.filter(req => 
             req.alias.toLowerCase().includes(searchTerm.toLowerCase())
-        ).sort((a,b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+        ).sort((a,b) => new Date(b.requestDate).getTime() - new Date(a.date).getTime());
     }, [allRequests, searchTerm]);
 
     const handleUpdateRequest = (id: string, status: 'approved' | 'rejected') => {

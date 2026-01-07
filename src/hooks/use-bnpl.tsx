@@ -4,13 +4,13 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { assessBnplApplication } from '@/ai/flows/bnpl-assessment-flow';
-import { useTransactions } from './use-transactions';
 import { useBalance } from './use-balance';
 import type { BnplRequest, BnplAssessmentOutput, BnplAssessmentInput } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { useUserManagement } from './use-user-management';
 import { toast } from './use-toast';
 import { useAuth } from '@/firebase';
+import { useTransactions } from './use-transactions';
 
 type SubmitRequestPayload = {
     merchantAlias: string;

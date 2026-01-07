@@ -22,6 +22,7 @@ export type Transaction = {
 
 type TransactionsContextType = {
   transactions: Transaction[];
+  isLoading: boolean;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => void;
   findPendingTransactionByCode: (code: string) => Transaction | undefined;
   updateTransactionStatus: (id: string, status: Transaction['status']) => void;
@@ -31,10 +32,9 @@ export const TransactionsContext = createContext<TransactionsContextType | undef
 
 type TransactionsProviderProps = {
     children: ReactNode;
-    alias: string;
 };
 
-export const TransactionsProvider = ({ children, alias }: TransactionsProviderProps) => {
+export const TransactionsProvider = ({ children }: TransactionsProviderProps) => {
   const { user } = useAuth();
   const firestore = useFirestore();
 
@@ -101,6 +101,7 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
 
   const value = { 
       transactions: formattedTransactions, 
+      isLoading,
       addTransaction, 
       findPendingTransactionByCode, 
       updateTransactionStatus 

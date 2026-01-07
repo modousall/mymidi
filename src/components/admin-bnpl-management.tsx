@@ -36,7 +36,7 @@ export default function AdminBnplManagement({ allUsers }: { allUsers: ManagedUse
         return allRequests.filter(req => 
             req.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
             req.merchantAlias.toLowerCase().includes(searchTerm.toLowerCase())
-        ).sort((a,b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+        ).sort((a,b) => new Date(b.requestDate).getTime() - new Date(a.date).getTime());
     }, [allRequests, searchTerm]);
 
     const handleUpdateRequest = (id: string, status: 'approved' | 'rejected') => {

@@ -16,7 +16,6 @@ import TransactionHistory from './transaction-history';
 import { FeatureFlagProvider } from '@/hooks/use-feature-flags';
 import { AvatarProvider } from '@/hooks/use-avatar';
 import { BalanceProvider } from '@/hooks/use-balance';
-import { TransactionsProvider } from '@/hooks/use-transactions';
 import { ContactsProvider } from '@/hooks/use-contacts';
 import { VirtualCardProvider } from '@/hooks/use-virtual-card';
 import { VaultsProvider } from '@/hooks/use-vaults';
@@ -32,6 +31,7 @@ import { formatCurrency } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from 'firebase/firestore';
 import type { Transaction } from '@/hooks/use-transactions';
+import { TransactionsProvider } from '@/hooks/use-transactions';
 
 
 // Import product components
