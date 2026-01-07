@@ -88,7 +88,16 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
                     balance: 1000000,
                 };
                 
-                await setDoc(userDocRef, userData);
+                await setDoc(userDocRef, userData).catch(e => {
+                    errorEmitter.emit(
+                        'permission-error',
+                        new FirestorePermissionError({
+                            path: userDocRef.path,
+                            operation: 'create',
+                            requestResourceData: userData,
+                        })
+                    )
+                });
                 
                 // Sign out after creating the account to let the user log in normally
                 await auth.signOut();
@@ -368,8 +377,11 @@ function AuthWrapper() {
                 signInWithEmailAndPassword(auth, userData.email, password)
                     .catch(handleAuthError);
             }).catch(error => {
-                 console.error("Error fetching user for login:", error);
-                 toast({ title: "Erreur de base de données", description: "Impossible de vérifier l'alias.", variant: "destructive" });
+                 const contextualError = new FirestorePermissionError({
+                    path: 'users',
+                    operation: 'list'
+                 });
+                 errorEmitter.emit('permission-error', contextualError);
             });
         }
     }
