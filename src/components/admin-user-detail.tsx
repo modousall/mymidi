@@ -257,20 +257,20 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
         return collection(firestore, `users/${user.id}/transactions`);
     }, [firestore, user]);
     
-    const { data: userTransactions } = useCollection<Transaction>(transactionsCollectionRef as any);
+    const { data: userTransactions } = useCollection<Transaction>(transactionsCollectionRef);
 
     const todaysRevenue = useMemo(() => {
         if (!userTransactions) return 0;
         const today = new Date().toISOString().split('T')[0];
         return userTransactions
-            .filter((tx: any) => tx.type === 'received' && tx.date.toDate().toISOString().startsWith(today))
+            .filter((tx: any) => tx.type === 'received' && tx.date?.toDate && tx.date.toDate().toISOString().startsWith(today))
             .reduce((sum: number, tx: any) => sum + tx.amount, 0);
     }, [userTransactions]);
 
     const todaysTransactionsCount = useMemo(() => {
         if (!userTransactions) return 0;
         const today = new Date().toISOString().split('T')[0];
-        return userTransactions.filter((tx: any) => tx.type === 'received' && tx.date.toDate().toISOString().startsWith(today)).length;
+        return userTransactions.filter((tx: any) => tx.type === 'received' && tx.date?.toDate && tx.date.toDate().toISOString().startsWith(today)).length;
     }, [userTransactions]);
     
     const { allRequests } = useBnpl();

@@ -27,7 +27,7 @@ const useAdminData = () => {
         if (!firestore) return null;
         return collection(firestore, 'users');
     }, [firestore]);
-    const { data: usersData, isLoading: isLoadingUsers, error: usersError } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery as any);
+    const { data: usersData, isLoading: isLoadingUsers, error: usersError } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
     
     const users = useMemo(() => {
         if (!usersData) return [];
