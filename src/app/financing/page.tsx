@@ -7,23 +7,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCms, CmsProvider } from "@/hooks/use-cms";
 
-const features = [
-    {
-      icon: <CheckCircle className="h-6 w-6 text-green-500" />,
-      title: "Conformité Mourabaha",
-      description: "Nous achetons le bien pour vous et vous le revendons à un coût majoré convenu, sans intérêt.",
-    },
-    {
-      icon: <Percent className="h-6 w-6 text-green-500" />,
-      title: "Transparence Totale",
-      description: "Pas de frais cachés. Le coût du financement est clair et fixé dès le départ.",
-    },
-    {
-        icon: <HandCoins className="h-6 w-6 text-green-500" />,
-        title: "Flexibilité de Remboursement",
-        description: "Adaptez les échéances à votre capacité de remboursement pour une gestion sereine.",
-      },
-];
+const icons: Record<string, React.ReactNode> = {
+    "Conformité Mourabaha": <CheckCircle className="h-6 w-6 text-green-500" />,
+    "Transparence Totale": <Percent className="h-6 w-6 text-green-500" />,
+    "Flexibilité de Remboursement": <HandCoins className="h-6 w-6 text-green-500" />,
+};
 
 function FinancingPageContent() {
     const { content } = useCms();
@@ -41,9 +29,9 @@ function FinancingPageContent() {
                 
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-8">
-                         {features.map((feature, index) => (
+                         {content.pageFeatures.financing.map((feature, index) => (
                             <div key={index} className="flex items-start gap-4">
-                                <div className="flex-shrink-0">{feature.icon}</div>
+                                <div className="flex-shrink-0">{icons[feature.title] || <CheckCircle className="h-6 w-6 text-green-500" />}</div>
                                 <div>
                                     <h3 className="text-xl font-semibold">{feature.title}</h3>
                                     <p className="text-muted-foreground mt-1">{feature.description}</p>

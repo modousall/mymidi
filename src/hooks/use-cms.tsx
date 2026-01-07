@@ -21,6 +21,12 @@ export type CmsContent = {
     payments: string;
     security: string;
   };
+  pageFeatures: {
+    financing: { title: string; description: string }[];
+    savings: { title: string; description: string }[];
+    payments: { title: string; description: string }[];
+    security: { title: string; description: string }[];
+  }
 };
 
 export const defaultContent: CmsContent = {
@@ -60,6 +66,28 @@ export const defaultContent: CmsContent = {
     savings: "https://placehold.co/600x400.png",
     payments: "https://placehold.co/600x400.png",
     security: "https://placehold.co/600x400.png",
+  },
+  pageFeatures: {
+    financing: [
+        { title: "Conformité Mourabaha", description: "Nous achetons le bien pour vous et vous le revendons à un coût majoré convenu, sans intérêt." },
+        { title: "Transparence Totale", description: "Pas de frais cachés. Le coût du financement est clair et fixé dès le départ." },
+        { title: "Flexibilité de Remboursement", description: "Adaptez les échéances à votre capacité de remboursement pour une gestion sereine." },
+    ],
+    savings: [
+        { title: "Coffres Personnels", description: "Créez des 'tirelires' virtuelles pour mettre de l'argent de côté pour vos projets personnels, petits ou grands." },
+        { title: "Tontines Collaboratives", description: "Rejoignez ou créez des groupes d'épargne rotatifs avec vos proches pour atteindre des objectifs communs." },
+        { title: "Atteignez vos Objectifs", description: "Fixez des montants cibles pour vos coffres et suivez votre progression en temps réel." },
+    ],
+    payments: [
+        { title: "Instantanéité", description: "Envoyez et recevez de l'argent en quelques secondes, 24/7." },
+        { title: "Frais Justes", description: "Des coûts de transaction minimes et clairement affichés. Pas de surprises." },
+        { title: "Paiements Simplifiés", description: "Utilisez un simple alias, un numéro de téléphone ou un QR code pour toutes vos transactions." },
+    ],
+    security: [
+        { title: "Chiffrement de Bout en Bout", description: "Toutes vos données et transactions sont chiffrées pour garantir leur confidentialité." },
+        { title: "Authentification Forte", description: "Votre compte est protégé par un code PIN unique que vous seul connaissez." },
+        { title: "Conformité Réglementaire", description: "Nous opérons en accord avec les standards des institutions financières pour protéger vos fonds." },
+    ]
   }
 };
 
@@ -87,7 +115,11 @@ export const CmsProvider = ({ children }: { children: ReactNode }) => {
           ...parsed,
           hero: { ...defaultContent.hero, ...parsed.hero },
           features: parsed.features || defaultContent.features,
-          images: { ...defaultContent.images, ...parsed.images }
+          images: { ...defaultContent.images, ...parsed.images },
+          pageFeatures: parsed.pageFeatures ? {
+            ...defaultContent.pageFeatures,
+            ...parsed.pageFeatures,
+          } : defaultContent.pageFeatures,
         });
       }
     } catch (error) {

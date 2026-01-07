@@ -13,7 +13,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import React, { useRef } from 'react';
-import { UploadCloud } from 'lucide-react';
+import { UploadCloud, Trash2 } from 'lucide-react';
+
+const pageFeatureItemSchema = z.object({
+    title: z.string().min(1, "Le titre est requis."),
+    description: z.string().min(1, "La description est requise."),
+});
 
 const cmsSchema = z.object({
     hero: z.object({
@@ -32,6 +37,12 @@ const cmsSchema = z.object({
         savings: z.string().min(1, "L'URL est requise.").url("L'URL de l'image d'épargne est invalide ou vide.").or(z.string().startsWith("data:image/")),
         payments: z.string().min(1, "L'URL est requise.").url("L'URL de l'image de paiements est invalide ou vide.").or(z.string().startsWith("data:image/")),
         security: z.string().min(1, "L'URL est requise.").url("L'URL de l'image de sécurité est invalide ou vide.").or(z.string().startsWith("data:image/")),
+    }),
+    pageFeatures: z.object({
+        financing: z.array(pageFeatureItemSchema),
+        savings: z.array(pageFeatureItemSchema),
+        payments: z.array(pageFeatureItemSchema),
+        security: z.array(pageFeatureItemSchema),
     }),
 });
 
@@ -82,6 +93,61 @@ const ImageUploadField = ({ form, name, label }: { form: any, name: `images.${'f
     )
 }
 
+type PageFeatureEditorProps = {
+    form: any;
+    pageName: 'financing' | 'savings' | 'payments' | 'security';
+    title: string;
+};
+
+const PageFeatureEditor = ({ form, pageName, title }: PageFeatureEditorProps) => {
+    const { fields, remove, append } = useFieldArray({
+        control: form.control,
+        name: `pageFeatures.${pageName}`
+    });
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {fields.map((item, index) => (
+                    <div key={item.id} className="p-4 border rounded-md space-y-2 relative">
+                        <FormField
+                            control={form.control}
+                            name={`pageFeatures.${pageName}.${index}.title`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Titre</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name={`pageFeatures.${pageName}.${index}.description`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="button" variant="ghost" size="icon" className="absolute top-1 right-1 text-destructive" onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ))}
+                <Button type="button" variant="outline" onClick={() => append({ title: '', description: '' })}>
+                    Ajouter un point
+                </Button>
+            </CardContent>
+        </Card>
+    );
+};
+
 export default function AdminCms() {
     const { content, setContent } = useCms();
 
@@ -102,7 +168,7 @@ export default function AdminCms() {
         setContent(data);
         toast({
             title: "Contenu mis à jour",
-            description: "Les modifications de la page d'accueil ont été enregistrées.",
+            description: "Les modifications ont été enregistrées.",
         });
     };
 
@@ -111,17 +177,18 @@ export default function AdminCms() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                  <Card>
                     <CardHeader>
-                        <CardTitle>Gestion du Contenu de la Landing Page</CardTitle>
-                        <CardDescription>Modifiez les textes et les images affichés sur la page d'accueil et les pages de détails.</CardDescription>
+                        <CardTitle>Gestion du Contenu de la Plateforme</CardTitle>
+                        <CardDescription>Modifiez les textes et les images affichés sur l'ensemble de la plateforme.</CardDescription>
                     </CardHeader>
                 </Card>
-                <Tabs defaultValue="text" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="text">Contenus Textuels</TabsTrigger>
-                        <TabsTrigger value="images">Images des Pages</TabsTrigger>
+                <Tabs defaultValue="landing" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="landing">Page d'Accueil</TabsTrigger>
+                        <TabsTrigger value="pages">Pages de Services</TabsTrigger>
+                        <TabsTrigger value="images">Images Globales</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="text" className="mt-6 space-y-6">
+                    <TabsContent value="landing" className="mt-6 space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Section Héro</CardTitle>
@@ -160,6 +227,13 @@ export default function AdminCms() {
                             </CardContent>
                         </Card>
                     </TabsContent>
+                    
+                    <TabsContent value="pages" className="mt-6 space-y-6">
+                        <PageFeatureEditor form={form} pageName="financing" title="Page Financement" />
+                        <PageFeatureEditor form={form} pageName="savings" title="Page Épargne" />
+                        <PageFeatureEditor form={form} pageName="payments" title="Page Paiements" />
+                        <PageFeatureEditor form={form} pageName="security" title="Page Sécurité" />
+                    </TabsContent>
 
                     <TabsContent value="images" className="mt-6">
                         <Card>
@@ -184,5 +258,3 @@ export default function AdminCms() {
         </Form>
     );
 }
-
-    

@@ -7,23 +7,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCms, CmsProvider } from "@/hooks/use-cms";
 
-const features = [
-    {
-      icon: <Lock className="h-6 w-6 text-blue-500" />,
-      title: "Chiffrement de Bout en Bout",
-      description: "Toutes vos données et transactions sont chiffrées pour garantir leur confidentialité.",
-    },
-    {
-      icon: <Fingerprint className="h-6 w-6 text-blue-500" />,
-      title: "Authentification Forte",
-      description: "Votre compte est protégé par un code PIN unique que vous seul connaissez.",
-    },
-    {
-        icon: <ShieldCheck className="h-6 w-6 text-blue-500" />,
-        title: "Conformité Réglementaire",
-        description: "Nous opérons en accord avec les standards des institutions financières pour protéger vos fonds.",
-      },
-];
+const icons: Record<string, React.ReactNode> = {
+    "Chiffrement de Bout en Bout": <Lock className="h-6 w-6 text-blue-500" />,
+    "Authentification Forte": <Fingerprint className="h-6 w-6 text-blue-500" />,
+    "Conformité Réglementaire": <ShieldCheck className="h-6 w-6 text-blue-500" />,
+};
 
 function SecurityPageContent() {
     const { content } = useCms();
@@ -41,9 +29,9 @@ function SecurityPageContent() {
                 
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-8">
-                         {features.map((feature, index) => (
+                         {content.pageFeatures.security.map((feature, index) => (
                             <div key={index} className="flex items-start gap-4">
-                                <div className="flex-shrink-0">{feature.icon}</div>
+                                <div className="flex-shrink-0">{icons[feature.title] || <Lock className="h-6 w-6 text-blue-500" />}</div>
                                 <div>
                                     <h3 className="text-xl font-semibold">{feature.title}</h3>
                                     <p className="text-muted-foreground mt-1">{feature.description}</p>

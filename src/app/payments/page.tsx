@@ -7,21 +7,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCms, CmsProvider } from "@/hooks/use-cms";
 
-const features = [
-    {
-      title: "Instantanéité",
-      description: "Envoyez et recevez de l'argent en quelques secondes, 24/7.",
-    },
-    {
-      title: "Frais Justes",
-      description: "Des coûts de transaction minimes et clairement affichés. Pas de surprises.",
-    },
-    {
-        title: "Paiements Simplifiés",
-        description: "Utilisez un simple alias, un numéro de téléphone ou un QR code pour toutes vos transactions.",
-      },
-];
-
 function PaymentsPageContent() {
     const { content } = useCms();
 
@@ -48,7 +33,7 @@ function PaymentsPageContent() {
                         />
                     </div>
                     <div className="space-y-8">
-                         {features.map((feature, index) => (
+                         {content.pageFeatures.payments.map((feature, index) => (
                             <div key={index} className="flex items-start gap-4">
                                 <ArrowRight className="h-6 w-6 text-green-500 mt-1 flex-shrink-0" />
                                 <div>

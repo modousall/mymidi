@@ -7,23 +7,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCms, CmsProvider } from "@/hooks/use-cms";
 
-const features = [
-    {
-      icon: <PiggyBank className="h-8 w-8 text-primary" />,
-      title: "Coffres Personnels",
-      description: "Créez des 'tirelires' virtuelles pour mettre de l'argent de côté pour vos projets personnels, petits ou grands.",
-    },
-    {
-      icon: <Users className="h-8 w-8 text-primary" />,
-      title: "Tontines Collaboratives",
-      description: "Rejoignez ou créez des groupes d'épargne rotatifs avec vos proches pour atteindre des objectifs communs.",
-    },
-    {
-        icon: <Target className="h-8 w-8 text-primary" />,
-        title: "Atteignez vos Objectifs",
-        description: "Fixez des montants cibles pour vos coffres et suivez votre progression en temps réel.",
-      },
-];
+const icons: Record<string, React.ReactNode> = {
+    "Coffres Personnels": <PiggyBank className="h-8 w-8 text-primary" />,
+    "Tontines Collaboratives": <Users className="h-8 w-8 text-primary" />,
+    "Atteignez vos Objectifs": <Target className="h-8 w-8 text-primary" />,
+};
 
 function SavingsPageContent() {
     const { content } = useCms();
@@ -51,9 +39,9 @@ function SavingsPageContent() {
                         />
                     </div>
                      <div className="space-y-8">
-                         {features.map((feature, index) => (
+                         {content.pageFeatures.savings.map((feature, index) => (
                             <div key={index} className="flex items-start gap-4">
-                                <div className="flex-shrink-0 p-3 bg-primary/10 rounded-full">{feature.icon}</div>
+                                <div className="flex-shrink-0 p-3 bg-primary/10 rounded-full">{icons[feature.title] || <PiggyBank className="h-8 w-8 text-primary" />}</div>
                                 <div>
                                     <h3 className="text-xl font-semibold">{feature.title}</h3>
                                     <p className="text-muted-foreground mt-1">{feature.description}</p>
