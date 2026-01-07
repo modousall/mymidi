@@ -6,7 +6,7 @@
  * - islamicFinancingAssessment - a function that handles the financing assessment process.
  */
 
-import { aiGenerate } from '@/ai/ai-wrapper';
+import { aiGenerate } from '@/ai/gemini';
 import { IslamicFinancingInputSchema, IslamicFinancingOutputSchema, type IslamicFinancingInput, type IslamicFinancingOutput } from '@/lib/types';
 
 export async function islamicFinancingAssessment(

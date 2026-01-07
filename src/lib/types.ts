@@ -6,6 +6,21 @@ const ScoreDetailSchema = z.object({
   explanation: z.string().describe('Une brève explication sur la manière dont le score a été calculé.'),
 });
 
+// Bill Payment Assistant
+export const BillPaymentAssistantInputSchema = z.object({
+  service: z.string().describe('The name of the service being paid (e.g., SDE, SENELEC).'),
+  identifier: z.string().describe('The customer identifier (e.g., contract number, phone number).'),
+  amount: z.number().describe('The amount to be paid.'),
+});
+export type BillPaymentAssistantInput = z.infer<typeof BillPaymentAssistantInputSchema>;
+
+export const BillPaymentAssistantOutputSchema = z.object({
+  isValid: z.boolean().describe('Whether the provided information seems valid.'),
+  suggestions: z.array(z.string()).describe('A list of suggestions or warnings for the user.'),
+});
+export type BillPaymentAssistantOutput = z.infer<typeof BillPaymentAssistantOutputSchema>;
+
+
 // BNPL (Buy Now, Pay Later) Schemas and Types
 export const BnplAssessmentInputSchema = z.object({
   alias: z.string().describe('The user alias applying for BNPL.'),

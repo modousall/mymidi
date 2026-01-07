@@ -8,7 +8,7 @@
  * - AliasSuggestionOutput - The return type for the aliasSuggestion function.
  */
 import { z } from 'zod';
-import { aiGenerate } from '@/ai/ai-wrapper';
+import { aiGenerate } from '@/ai/gemini';
 
 const AliasSuggestionInputSchema = z.object({
   name: z.string().optional().describe("The user's full name."),

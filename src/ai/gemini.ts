@@ -1,3 +1,4 @@
+
 import type { GenerateContentRequest } from '@google/generative-ai';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
@@ -21,7 +22,7 @@ async function geminiFetch(requestBody: GenerateContentRequest) {
   return response.json();
 }
 
-export async function geminiGenerate(
+export async function aiGenerate(
   prompt: string,
   jsonMode: boolean = false
 ) {
@@ -36,7 +37,7 @@ export async function geminiGenerate(
 
   if (jsonMode) {
     requestBody.generationConfig = {
-      responseMimeType: 'application/json',
+      response_mime_type: 'application/json',
     };
   }
 

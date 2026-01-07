@@ -9,7 +9,7 @@
  * - PaymentSecurityAssistantOutput - The return type for the paymentSecurityAssistant function.
  */
 import { z } from 'zod';
-import { aiGenerate } from '@/ai/ai-wrapper';
+import { aiGenerate } from '@/ai/gemini';
 
 const PaymentSecurityAssistantInputSchema = z.object({
   recipientAlias: z.string().describe('The alias of the payment recipient.'),

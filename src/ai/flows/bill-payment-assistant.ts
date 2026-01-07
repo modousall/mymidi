@@ -7,9 +7,9 @@
  * - BillPaymentAssistantInput - The input type for the function.
  * - BillPaymentAssistantOutput - The return type for the function.
  */
-import type { BillPaymentAssistantInput, BillPaymentAssistantOutput } from '@/components/bill-payment-form';
-import { BillPaymentAssistantOutputSchema } from '@/components/bill-payment-form';
-import { aiGenerate } from '@/ai/ai-wrapper';
+import type { BillPaymentAssistantInput, BillPaymentAssistantOutput } from '@/lib/types';
+import { BillPaymentAssistantOutputSchema } from '@/lib/types';
+import { aiGenerate } from '@/ai/gemini';
 
 export async function billPaymentAssistant(input: BillPaymentAssistantInput): Promise<BillPaymentAssistantOutput> {
 

@@ -1,5 +1,6 @@
+
 import { NextResponse } from "next/server";
-import { aiGenerate } from "@/ai/ai-wrapper";
+import { aiGenerate } from "@/ai/gemini";
 
 export async function GET() {
   try {

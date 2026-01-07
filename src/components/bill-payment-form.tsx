@@ -27,20 +27,7 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useProductManagement } from '@/hooks/use-product-management';
 import { formatCurrency } from '@/lib/utils';
-
-// Define Zod schemas and types here
-export const BillPaymentAssistantInputSchema = z.object({
-  service: z.string().describe('The name of the service being paid (e.g., SDE, SENELEC).'),
-  identifier: z.string().describe('The customer identifier (e.g., contract number, phone number).'),
-  amount: z.number().describe('The amount to be paid.'),
-});
-export type BillPaymentAssistantInput = z.infer<typeof BillPaymentAssistantInputSchema>;
-
-export const BillPaymentAssistantOutputSchema = z.object({
-  isValid: z.boolean().describe('Whether the provided information seems valid.'),
-  suggestions: z.array(z.string()).describe('A list of suggestions or warnings for the user.'),
-});
-export type BillPaymentAssistantOutput = z.infer<typeof BillPaymentAssistantOutputSchema>;
+import type { BillPaymentAssistantOutput } from '@/lib/types';
 
 
 const paymentFormSchema = z.object({

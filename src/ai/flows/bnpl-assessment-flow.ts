@@ -6,7 +6,7 @@
  * - assessBnplApplication - A function that handles the BNPL assessment process.
  */
 
-import { aiGenerate } from '@/ai/ai-wrapper';
+import { aiGenerate } from '@/ai/gemini';
 import { BnplAssessmentInputSchema, BnplAssessmentOutputSchema, type BnplAssessmentInput, type BnplAssessmentOutput } from '@/lib/types';
 
 
