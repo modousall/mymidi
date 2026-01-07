@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -37,8 +36,8 @@ type TransactionsProviderProps = {
 };
 
 export const TransactionsProvider = ({ children, forUserId }: TransactionsProviderProps) => {
-  const { user } = useUser(); // This hook just provides user state, it doesn't fetch from provider context
-  const firestore = useFirestore(); // This hook gets the instance from the main provider context
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const targetUserId = forUserId || user?.uid;
 
@@ -56,7 +55,6 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
       if (!rawTransactions) return [];
       return rawTransactions.map(tx => ({
           ...tx,
-          // Convert Firestore Timestamp to ISO string if it's an object
           date: tx.date?.toDate ? tx.date.toDate().toISOString() : tx.date,
       })) as Transaction[];
   }, [rawTransactions]);

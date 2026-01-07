@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -34,7 +33,8 @@ const useAdminData = () => {
         return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
     }, [usersData]);
 
-    // This is a collection group query, which requires specific security rules and indexes.
+    // This query is expensive and should only be run when needed, e.g., in the reporting section.
+    // For now, we will load it for the analysis tab but defer it for others.
     const transactionsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collectionGroup(firestore, 'transactions'));
