@@ -86,22 +86,21 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
                     balance: 1000000,
                 };
                 
-                // Use non-blocking setDoc with contextual error handling
-                setDoc(userDocRef, userData)
-                    .catch(async (serverError) => {
-                        const permissionError = new FirestorePermissionError({
-                            path: userDocRef.path,
-                            operation: 'create',
-                            requestResourceData: userData,
-                        });
-                        errorEmitter.emit('permission-error', permissionError);
-                    });
-
+                await setDoc(userDocRef, userData);
+                
                 // Sign out after creating the account to let the user log in normally
                 await auth.signOut();
-            } catch (creationError) {
+
+            } catch (creationError: any) {
                 // This might happen if there's a race condition or other issue
-                console.error("Failed to create superadmin:", creationError);
+                 errorEmitter.emit(
+                    'permission-error',
+                    new FirestorePermissionError({
+                        path: `users/${(creationError as any)?.user?.uid || 'unknown'}`,
+                        operation: 'create',
+                        requestResourceData: (creationError as any).userData,
+                    })
+                )
             }
         }
     }
@@ -225,14 +224,10 @@ function AuthWrapper() {
             });
             setStep(getDashboardStepForRole(userDoc.role));
 
-        } else if (user && !userDoc && !isUserDocLoading) {
-            // This case means user is authenticated but has no firestore document.
-            // This could be an error state, or part of a multi-step registration.
-            // For now, we sign them out to be safe.
-            console.error("User is authenticated but no Firestore document was found.");
-            auth.signOut();
-            setStep('login');
-            setUserInfo(null);
+        } else if (user && !userDoc) {
+            // This case can happen briefly during registration.
+            // If it persists, it's an error. We don't sign out immediately anymore.
+            // We just wait for the userDoc to load.
         } else {
             // No user is authenticated
             setStep('demo');
@@ -268,10 +263,11 @@ function AuthWrapper() {
         if (tempUserInfoString && auth && firestore) {
             const tempInfo = JSON.parse(tempUserInfoString);
             const password = `${pin}${pin}`;
+            let newUser;
 
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, tempInfo.email, password);
-                const newUser = userCredential.user;
+                newUser = userCredential.user;
                 
                 const userDocRef = doc(firestore, 'users', newUser.uid);
                 const userData = {
@@ -286,23 +282,14 @@ function AuthWrapper() {
                     balance: 0,
                 };
 
-                // Use non-blocking setDoc with error handling
-                setDoc(userDocRef, userData)
-                  .catch(async (serverError) => {
-                    const permissionError = new FirestorePermissionError({
-                        path: userDocRef.path,
-                        operation: 'create',
-                        requestResourceData: userData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                  });
-
+                // Use blocking setDoc to ensure document is created before proceeding
+                await setDoc(userDocRef, userData);
 
                 sessionStorage.removeItem('midi_onboarding_alias');
                 sessionStorage.removeItem('midi_onboarding_user_info');
                 
-                // No toast here, the useEffect will handle the transition to dashboard
-                // toast({ title: "Compte créé avec succès !", description: "Bienvenue sur Midi." });
+                // The useEffect will handle the transition to the dashboard automatically
+                // once the user and userDoc are available.
 
             } catch(error: any) {
                  toast({
@@ -310,6 +297,12 @@ function AuthWrapper() {
                     description: error.message || "Impossible de créer le compte. L'email est peut-être déjà utilisé.",
                     variant: "destructive",
                 });
+                
+                // If user was created in Auth but doc creation failed, delete the user
+                if (newUser) {
+                    await newUser.delete();
+                }
+
                 setStep('alias');
             }
         } else {
