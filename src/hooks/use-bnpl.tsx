@@ -50,7 +50,7 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { transactions, addTransaction } = useTransactions();
   const { balance, debit, credit } = useBalance();
-  const { users, usersWithTransactions } = useUserManagement();
+  const { users, usersWithTransactions, addTransactionForUser } = useUserManagement();
 
   useEffect(() => {
     try {
@@ -209,71 +209,36 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
             if (!userToCredit || !merchantToPay) {
                 throw new Error("Utilisateur ou marchand introuvable pour la transaction BNPL.");
             }
-
-            // This is a simulation, in a real app this would be a multi-step backend transaction.
-            // All these localStorage manipulations should be replaced by API calls in a real app.
             
-            // 1. Credit the user's balance
-            const userBalanceKey = `midi_balance_${userToCredit.alias}`;
-            const userCurrentBalanceStr = localStorage.getItem(userBalanceKey);
-            const userCurrentBalance = userCurrentBalanceStr ? JSON.parse(userCurrentBalanceStr) : 0;
-            let userNewBalance = userCurrentBalance;
-
-            // 2. Add transaction for user to see the credit
-            const userTxKey = `midi_transactions_${userToCredit.alias}`;
-            const userTxStr = localStorage.getItem(userTxKey);
-            const userTxs = userTxStr ? JSON.parse(userTxStr) : [];
-            
-            // Credit Tx
-            userNewBalance += requestToUpdate.amount;
-            const userCreditTx = {
-                id: `TXN${Date.now()}`,
+            // 1. Credit the user with the loan, then debit to pay the merchant.
+             addTransactionForUser(userToCredit.alias, {
                 type: 'received',
                 counterparty: 'Credit Marchands',
                 reason: `Crédit approuvé pour ${merchantToPay.name}`,
                 amount: requestToUpdate.amount,
                 date: new Date().toISOString(),
                 status: 'Terminé'
-            };
-            let updatedUserTxs = [userCreditTx, ...userTxs];
+            }, 'credit');
 
-            // 3. Immediately debit the user for the payment to the merchant
-            userNewBalance -= requestToUpdate.amount;
-            const userPaymentTx = {
-                 id: `TXN${Date.now()+1}`,
-                 type: 'sent',
-                 counterparty: merchantToPay.alias,
-                 reason: `Achat chez ${merchantToPay.name}`,
-                 amount: requestToUpdate.amount,
-                 date: new Date().toISOString(),
-                 status: 'Terminé'
-            }
-            updatedUserTxs = [userPaymentTx, ...updatedUserTxs];
-            localStorage.setItem(userBalanceKey, JSON.stringify(userNewBalance));
-            localStorage.setItem(userTxKey, JSON.stringify(updatedUserTxs));
-
-            // 4. Credit the merchant's balance
-            const merchantBalanceKey = `midi_balance_${merchantToPay.alias}`;
-            const merchantCurrentBalanceStr = localStorage.getItem(merchantBalanceKey);
-            const merchantCurrentBalance = merchantCurrentBalanceStr ? JSON.parse(merchantCurrentBalanceStr) : 0;
-            const newMerchantBalance = merchantCurrentBalance + requestToUpdate.amount;
-            localStorage.setItem(merchantBalanceKey, JSON.stringify(newMerchantBalance));
-
-            // 5. Add transaction for merchant to see the sale
-            const merchantTxKey = `midi_transactions_${merchantToPay.alias}`;
-            const merchantTxStr = localStorage.getItem(merchantTxKey);
-            const merchantTxs = merchantTxStr ? JSON.parse(merchantTxStr) : [];
-             const merchantNewTx = {
-                id: `TXN${Date.now()+2}`,
-                type: 'received',
-                counterparty: userToCredit.name,
-                reason: `Vente (paiement par crédit Midi)`,
+            addTransactionForUser(userToCredit.alias, {
+                type: 'sent',
+                counterparty: merchantToPay.alias,
+                reason: `Achat chez ${merchantToPay.name}`,
                 amount: requestToUpdate.amount,
                 date: new Date().toISOString(),
                 status: 'Terminé'
-            };
-            localStorage.setItem(merchantTxKey, JSON.stringify([merchantNewTx, ...merchantTxs]));
+            }, 'debit');
 
+            // 2. Credit the merchant for the sale
+            addTransactionForUser(merchantToPay.alias, {
+                type: 'received',
+                counterparty: userToCredit.name,
+                reason: 'Vente (paiement par crédit Midi)',
+                amount: requestToUpdate.amount,
+                date: new Date().toISOString(),
+                status: 'Terminé'
+            }, 'credit');
+            
             toast({ title: "Demande approuvée", description: `Le marchand ${requestToUpdate.merchantAlias} a été crédité et la dette de l'utilisateur a été enregistrée.` });
 
         } catch (error: any) {

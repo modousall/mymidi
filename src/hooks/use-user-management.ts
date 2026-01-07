@@ -191,5 +191,27 @@ export const useUserManagement = () => {
     return { success: true, message: "Utilisateur créé avec succès." };
   };
 
-  return { users, usersWithTransactions, toggleUserSuspension, resetUserPin, addUser, updateUserRole, changeUserPin, refreshUsers: loadUsers };
+  const addTransactionForUser = (userAlias: string, transaction: Omit<Transaction, 'id'>, balanceChange: 'credit' | 'debit') => {
+      const balanceKey = `midi_balance_${userAlias}`;
+      const txKey = `midi_transactions_${userAlias}`;
+      
+      // Update Balance
+      const currentBalanceStr = localStorage.getItem(balanceKey);
+      const currentBalance = currentBalanceStr ? JSON.parse(currentBalanceStr) : 0;
+      const newBalance = balanceChange === 'credit' ? currentBalance + transaction.amount : currentBalance - transaction.amount;
+      localStorage.setItem(balanceKey, JSON.stringify(newBalance));
+
+      // Update Transactions
+      const currentTxsStr = localStorage.getItem(txKey);
+      const currentTxs = currentTxsStr ? JSON.parse(currentTxsStr) : [];
+      const newTx = { ...transaction, id: `TXN${Date.now()}` };
+      localStorage.setItem(txKey, JSON.stringify([newTx, ...currentTxs]));
+
+      // This will trigger the global state update
+      loadUsers();
+  };
+
+
+  return { users, usersWithTransactions, toggleUserSuspension, resetUserPin, addUser, updateUserRole, changeUserPin, refreshUsers: loadUsers, addTransactionForUser };
 };
+
