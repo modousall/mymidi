@@ -36,7 +36,7 @@ export default function DashboardHeader({ userInfo, onProfileClick }: HeaderProp
     const { tontines } = useTontine();
     const { avatar } = useAvatar();
     const { budget } = useMonthlyBudget();
-    const { transactions } = useTransactions();
+    const { historyTransactions: transactions } = useTransactions();
 
     const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
@@ -46,6 +46,7 @@ export default function DashboardHeader({ userInfo, onProfileClick }: HeaderProp
     const totalBalance = balance + (card?.balance || 0) + totalVaultsBalance + totalTontinesBalance;
     
     const spentAmount = useMemo(() => {
+        if (!transactions) return 0;
         return transactions
             .filter(tx => tx.type === 'sent' && isThisMonth(parseISO(tx.date)))
             .reduce((sum, tx) => sum + tx.amount, 0);
