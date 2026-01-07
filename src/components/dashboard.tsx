@@ -79,67 +79,62 @@ export default function Dashboard({ alias, userInfo, onLogout }: DashboardProps)
             return <MerchantList onBack={() => onNavigateTo('settings')} />;
         }
 
-        // From this point on, all views need the transaction provider context
+        if (showAllTransactions) {
+            return <TransactionHistory showAll={true} onShowAll={handleShowAllTransactions} />;
+        }
+        if (activeService) {
+             switch (activeService) {
+                case 'ma-carte':
+                    return <VirtualCard onBack={() => setActiveService(null)} cardHolderName={userInfo.name} />;
+                case 'epargne':
+                     return <Epargne onBack={() => setActiveService(null)} />;
+                case 'financement':
+                    return <Financing onBack={() => setActiveService(null)} />;
+                default:
+                    setActiveService(null);
+             }
+        }
+        if (activeAction !== 'none') {
+             switch (activeAction) {
+                case 'transferer':
+                    return <PayerTransferer onBack={() => setActiveAction('none')} />
+                case 'recharger':
+                    return <RechargerCompte onBack={() => setActiveAction('none')} />
+                case 'retirer':
+                    return <WithdrawOptions onBack={() => setActiveAction('none')} alias={alias} userInfo={userInfo} />
+                case 'paiement':
+                    return <Paiement onBack={() => setActiveAction('none')} />
+                default:
+                    setActiveAction('none');
+            }
+        }
+        
         return (
-            <TransactionsProvider alias={alias}>
-                {(() => {
-                    if (showAllTransactions) {
-                        return <TransactionHistory showAll={true} onShowAll={handleShowAllTransactions} />;
-                    }
-                    if (activeService) {
-                         switch (activeService) {
-                            case 'ma-carte':
-                                return <VirtualCard onBack={() => setActiveService(null)} cardHolderName={userInfo.name} />;
-                            case 'epargne':
-                                 return <Epargne onBack={() => setActiveService(null)} />;
-                            case 'financement':
-                                return <Financing onBack={() => setActiveService(null)} />;
-                            default:
-                                setActiveService(null);
-                         }
-                    }
-                    if (activeAction !== 'none') {
-                         switch (activeAction) {
-                            case 'transferer':
-                                return <PayerTransferer onBack={() => setActiveAction('none')} />
-                            case 'recharger':
-                                return <RechargerCompte onBack={() => setActiveAction('none')} />
-                            case 'retirer':
-                                return <WithdrawOptions onBack={() => setActiveAction('none')} alias={alias} userInfo={userInfo} />
-                            case 'paiement':
-                                return <Paiement onBack={() => setActiveAction('none')} />
-                            default:
-                                setActiveAction('none');
-                        }
-                    }
-                    
-                    return (
-                        <div className="space-y-8">
-                            <DashboardHeader userInfo={userInfo} alias={alias} onProfileClick={() => onNavigateTo('profile')} />
-                            
-                            <HomeActions 
-                                onSendClick={() => setActiveAction('transferer')} 
-                                onRechargeClick={() => setActiveAction('recharger')}
-                                onWithdrawClick={() => setActiveAction('retirer')}
-                                onBillPayClick={() => setActiveAction('paiement')}
-                                onFinancingClick={() => setActiveService('financement')}
-                                alias={alias}
-                                userInfo={userInfo}
-                            />
-                            
-                            <BalanceCards onNavigate={handleCardNavigation} userInfo={userInfo} />
-                            <TransactionHistory showAll={false} onShowAll={handleShowAllTransactions} />
-                        </div>
-                    )
-                })()}
-            </TransactionsProvider>
+            <div className="space-y-8">
+                <DashboardHeader userInfo={userInfo} alias={alias} onProfileClick={() => onNavigateTo('profile')} />
+                
+                <HomeActions 
+                    onSendClick={() => setActiveAction('transferer')} 
+                    onRechargeClick={() => setActiveAction('recharger')}
+                    onWithdrawClick={() => setActiveAction('retirer')}
+                    onBillPayClick={() => setActiveAction('paiement')}
+                    onFinancingClick={() => setActiveService('financement')}
+                    alias={alias}
+                    userInfo={userInfo}
+                />
+                
+                <BalanceCards onNavigate={handleCardNavigation} userInfo={userInfo} />
+                <TransactionHistory showAll={false} onShowAll={handleShowAllTransactions} />
+            </div>
         )
       }
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
         <main className="flex-grow container mx-auto p-4 sm:p-6">
-            {renderContent()}
+            <TransactionsProvider alias={alias}>
+              {renderContent()}
+            </TransactionsProvider>
         </main>
     </div>
   );
