@@ -80,3 +80,5 @@ const TegScheduleReceipt = React.forwardRef<HTMLDivElement, TegScheduleReceiptPr
 
 TegScheduleReceipt.displayName = 'TegScheduleReceipt';
 export default TegScheduleReceipt;
+
+    
