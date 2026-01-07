@@ -359,7 +359,8 @@ function AuthWrapper() {
                 const userDoc = querySnapshot.docs[0];
                 const userData = userDoc.data();
     
-                const password = `${secret}${secret}`;
+                // If the secret is a PIN, it needs to be doubled to match the stored password.
+                const password = secret.length === 4 ? `${secret}${secret}` : secret;
                 
                 signInWithEmailAndPassword(auth, userData.email, password).catch(handleAuthError);
             }).catch(error => {
@@ -369,7 +370,7 @@ function AuthWrapper() {
                  });
                  toast({
                     title: "Erreur de permission",
-                    description: `La recherche d'utilisateur par numéro de téléphone a été bloquée par les règles de sécurité. Assurez-vous d'être déconnecté avant de tenter cette action.`,
+                    description: `La recherche d'utilisateur par numéro de téléphone a été bloquée par les règles de sécurité. ${error.message}`,
                     variant: "destructive",
                 });
             });
@@ -428,6 +429,3 @@ export default function AuthenticationGate() {
         </FirebaseClientProvider>
     );
 }
-
-
-
