@@ -9,3 +9,4 @@ import '@/ai/flows/alias-suggestion-flow.ts';
 import '@/ai/flows/bill-payment-assistant.ts';
 import '@/ai/flows/bnpl-assessment-flow.ts';
 import '@/ai/flows/islamic-financing-flow.ts';
+import '@/ai/flows/send-email-flow.ts';
