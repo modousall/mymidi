@@ -92,7 +92,13 @@ export default function QrCodeDisplay({ alias, userInfo, simpleMode = false, amo
             </SheetHeader>
         )}
 
-        <div className="flex-grow flex items-center justify-center p-4">
+        <div className="flex-grow flex flex-col items-center justify-center p-4">
+             {simpleMode && (
+                <div className="text-center mb-4">
+                    <h3 className="font-bold text-lg">{userInfo.name}</h3>
+                    <p className="text-sm text-muted-foreground">{alias}</p>
+                </div>
+            )}
             <div className="relative">
                 <Image
                     src={qrCodeUrl}

@@ -100,7 +100,7 @@ export default function MerchantCreditProposalForm({ merchantAlias, merchantInfo
     return (
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Proposition de Crédit</DialogTitle>
+                <DialogTitle>Proposition de Crédit - {merchantInfo.name}</DialogTitle>
                 <DialogDescription>
                     Demandez à votre client de scanner ce QR code avec son application Midi pour valider la demande de crédit.
                 </DialogDescription>
@@ -124,7 +124,7 @@ export default function MerchantCreditProposalForm({ merchantAlias, merchantInfo
   return (
     <DialogContent className="max-w-lg">
       <DialogHeader>
-        <DialogTitle>Proposer un Paiement Échelonné</DialogTitle>
+        <DialogTitle>Proposer un Paiement Échelonné - {merchantInfo.name}</DialogTitle>
         <DialogDescription>
           Remplissez les détails du crédit. Un QR code sera généré pour que le client puisse valider la demande depuis son téléphone.
         </DialogDescription>

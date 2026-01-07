@@ -309,7 +309,7 @@ export default function ClientWithdrawalForm({ onBack, withdrawalType, alias }: 
                                 </DialogTrigger>
                                 <DialogContent className="max-w-xs p-4">
                                     <DialogHeader className="mb-4">
-                                        <DialogTitle className="text-center">Mon Code Midi</DialogTitle>
+                                        <DialogTitle className="text-center">Mon Code de Retrait</DialogTitle>
                                     </DialogHeader>
                                     {currentUser && (
                                         <QrCodeDisplay alias={currentUser.alias} userInfo={currentUser} simpleMode={true} />
