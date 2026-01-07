@@ -118,37 +118,25 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 };
 
 
-const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => {
-  const handleSettlement = (tx: any) => {
-      // In a real app, this would be a Firestore transaction
-      console.warn("Settlement transaction from ProductProvider:", tx);
-  }
-  return (
-    <ProductProvider addSettlementTransaction={handleSettlement}>
-      {children}
-    </ProductProvider>
-  )
-}
-
 // A single wrapper for all providers that depend on a user alias
-const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
+const AppProviders = ({ children }: { children: React.ReactNode }) => {
     return (
-        <TransactionsProvider alias={alias}>
+        <TransactionsProvider alias="">
             <TreasuryProvider>
                 <CmsProvider>
-                    <ProductProviderWrapper>
+                    <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
                         <FeatureFlagProvider>
                             <RoleProvider>
                                 <MonthlyBudgetProvider>
-                                    <BalanceProvider alias={alias}>
-                                        <BnplProvider alias={alias}>
-                                            <IslamicFinancingProvider alias={alias}>
-                                                <AvatarProvider alias={alias}>
-                                                    <ContactsProvider alias={alias}>
-                                                        <VirtualCardProvider alias={alias}>
-                                                            <VaultsProvider alias={alias}>
-                                                                <TontineProvider alias={alias}>
-                                                                    <RecurringPaymentsProvider alias={alias}>
+                                    <BalanceProvider alias="">
+                                        <BnplProvider alias="">
+                                            <IslamicFinancingProvider alias="">
+                                                <AvatarProvider alias="">
+                                                    <ContactsProvider alias="">
+                                                        <VirtualCardProvider alias="">
+                                                            <VaultsProvider alias="">
+                                                                <TontineProvider alias="">
+                                                                    <RecurringPaymentsProvider alias="">
                                                                         {children}
                                                                     </RecurringPaymentsProvider>
                                                                 </TontineProvider>
@@ -162,7 +150,7 @@ const AppProviders = ({ alias, children }: { alias: string, children: React.Reac
                                 </MonthlyBudgetProvider>
                             </RoleProvider>
                         </FeatureFlagProvider>
-                    </ProductProviderWrapper>
+                    </ProductProvider>
                 </CmsProvider>
             </TreasuryProvider>
         </TransactionsProvider>
@@ -402,13 +390,43 @@ function AuthWrapper() {
 
         // Authenticated user flows
         if (userInfo && user) {
-            return (
-                <AppProviders alias={userInfo.alias}>
-                    {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
-                    {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
-                    {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
+            const providers = (
+                <AppProviders>
+                    <TransactionsProvider alias={userInfo.alias}>
+                        <BalanceProvider alias={userInfo.alias}>
+                            <ContactsProvider alias={userInfo.alias}>
+                                <AvatarProvider alias={userInfo.alias}>
+                                    <VirtualCardProvider alias={userInfo.alias}>
+                                        <VaultsProvider alias={userInfo.alias}>
+                                            <TontineProvider alias={userInfo.alias}>
+                                                <BnplProvider alias={userInfo.alias}>
+                                                    <IslamicFinancingProvider alias={userInfo.alias}>
+                                                        <RecurringPaymentsProvider alias={userInfo.alias}>
+                                                            {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
+                                                            {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
+                                                            {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
+                                                        </RecurringPaymentsProvider>
+                                                    </IslamicFinancingProvider>
+                                                </BnplProvider>
+                                            </TontineProvider>
+                                        </VaultsProvider>
+                                    </VirtualCardProvider>
+                                </AvatarProvider>
+                            </ContactsProvider>
+                        </BalanceProvider>
+                    </TransactionsProvider>
                 </AppProviders>
-            )
+            );
+
+            switch(step) {
+                case 'dashboard':
+                case 'merchant_dashboard':
+                case 'admin_dashboard':
+                    return providers;
+                default:
+                    // Fallback to public flow if authenticated but step is wrong
+                    return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
+            }
         }
 
         // Public onboarding/login flow
