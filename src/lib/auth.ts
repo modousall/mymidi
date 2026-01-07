@@ -3,7 +3,8 @@
 import { 
     getAuth, 
     signInWithEmailAndPassword, 
-    createUserWithEmailAndPassword 
+    createUserWithEmailAndPassword,
+    Auth
 } from 'firebase/auth';
 import { 
     getFirestore, 
@@ -12,9 +13,12 @@ import {
     where, 
     getDocs, 
     doc, 
-    setDoc 
+    setDoc,
+    Firestore
 } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase/index';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+
 
 // --- Types ---
 export type SignUpDetails = {
@@ -40,6 +44,14 @@ const generatePasswordFromPin = (pin: string): string => {
     return `${pin}${pin.split('').reverse().join('')}${pin}`;
 };
 
+function getFirebaseServices(): { app: FirebaseApp; auth: Auth; firestore: Firestore } {
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
+    return { app, auth, firestore };
+}
+
+
 // --- Core Authentication Functions ---
 
 /**
@@ -48,7 +60,7 @@ const generatePasswordFromPin = (pin: string): string => {
  * @param pin - The user's 4-digit PIN.
  */
 export const loginWithIdentifier = async (identifier: string, pin: string): Promise<void> => {
-    const { auth, firestore } = initializeFirebase();
+    const { auth, firestore } = getFirebaseServices();
     const password = generatePasswordFromPin(pin);
 
     let userEmail = identifier;
@@ -93,7 +105,7 @@ export const loginWithIdentifier = async (identifier: string, pin: string): Prom
  * @param details - The user's signup details.
  */
 export const signupWithDetails = async (details: SignUpDetails): Promise<void> => {
-    const { auth, firestore } = initializeFirebase();
+    const { auth, firestore } = getFirebaseServices();
     const { email, pin, firstName, lastName, phoneNumber } = details;
 
     const password = generatePasswordFromPin(pin);
@@ -137,6 +149,6 @@ export const signupWithDetails = async (details: SignUpDetails): Promise<void> =
  * Logs out the currently signed-in user.
  */
 export const logout = async (): Promise<void> => {
-    const { auth } = initializeFirebase();
+    const { auth } = getFirebaseServices();
     await auth.signOut();
 };
