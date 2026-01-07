@@ -29,7 +29,7 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider, useAuth } from '@/firebase';
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
   loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
