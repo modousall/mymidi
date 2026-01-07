@@ -124,7 +124,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
   const updateRequestStatus = (id: string, status: 'approved' | 'rejected') => {
       const requestToUpdate = allRequests.find(r => r.id === id);
       if (!requestToUpdate) {
-        console.error("Financing request not found");
+        toast({ title: "Erreur", description: "Demande de financement introuvable.", variant: "destructive" });
         return;
       }
       
@@ -176,5 +176,3 @@ export const useIslamicFinancing = () => {
   }
   return context;
 };
-
-    

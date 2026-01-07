@@ -42,7 +42,7 @@ export default function AdminBnplManagement() {
     }, [allRequests, searchTerm]);
 
     const handleUpdateRequest = (id: string, status: 'approved' | 'rejected') => {
-        updateRequestStatus(id, status, users);
+        updateRequestStatus(id, status);
     };
 
     const handleUserSelect = (alias: string) => {

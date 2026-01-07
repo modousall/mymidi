@@ -7,7 +7,6 @@ import { assessBnplApplication } from '@/ai/flows/bnpl-assessment-flow';
 import { useTransactions } from './use-transactions';
 import { useBalance } from './use-balance';
 import type { BnplRequest, BnplAssessmentOutput, BnplAssessmentInput } from '@/lib/types';
-import type { ManagedUser } from '@/hooks/use-user-management';
 import { formatCurrency } from '@/lib/utils';
 import { useUserManagement } from './use-user-management';
 import { toast } from './use-toast';
@@ -32,7 +31,7 @@ type BnplContextType = {
     approvalRate: number;
   };
   submitRequest: (payload: SubmitRequestPayload, clientAlias?: string) => Promise<BnplAssessmentOutput>;
-  updateRequestStatus: (id: string, status: 'approved' | 'rejected', users: ManagedUser[]) => void;
+  updateRequestStatus: (id: string, status: 'approved' | 'rejected') => void;
   repayCredit: (amount: number) => void;
 };
 
@@ -190,10 +189,10 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
       return assessmentResult;
   };
 
-  const updateRequestStatus = (id: string, status: 'approved' | 'rejected', users: ManagedUser[]) => {
+  const updateRequestStatus = (id: string, status: 'approved' | 'rejected') => {
       const requestToUpdate = allRequests.find(r => r.id === id);
       if (!requestToUpdate) {
-        console.error("BNPL request not found");
+        toast({ title: "Erreur", description: "Demande de crédit introuvable.", variant: "destructive" });
         return;
       }
       
@@ -309,5 +308,3 @@ export const useBnpl = () => {
   }
   return context;
 };
-
-    
