@@ -276,7 +276,7 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
         });
         toast({ title: "Proposition de crédit chargée", description: "Vérifiez et soumettez la demande." });
     }
-  }, [prefillData, form, toast]);
+  }, [prefillData, form]);
 
    useEffect(() => {
     // When financingType changes, reset clientAlias if not in admin mode
@@ -541,5 +541,3 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
     </Form>
   );
 }
-
-    
