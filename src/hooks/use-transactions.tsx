@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -32,7 +31,7 @@ export const TransactionsContext = createContext<TransactionsContextType | undef
 
 type TransactionsProviderProps = {
     children: ReactNode;
-    alias: string; // The alias is now used to identify the user for transactions
+    alias: string;
 };
 
 export const TransactionsProvider = ({ children, alias }: TransactionsProviderProps) => {

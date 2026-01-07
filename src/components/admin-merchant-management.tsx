@@ -55,95 +55,95 @@ export default function AdminMerchantManagement({ allUsers, refreshUsers }: Admi
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
+        return (
+            <TransactionsProvider alias={selectedUser.alias}>
+                <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
+            </TransactionsProvider>
+        )
     }
     
-    const adminAlias = "+221775478575";
-
     return (
-        <TransactionsProvider alias={adminAlias}>
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Gestion des Marchands ({filteredMerchants.length})</CardTitle>
-                            <CardDescription>Consultez la liste des marchands. Cliquez pour voir les détails et les transactions.</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                             <div className="relative">
-                                <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Rechercher un marchand..." 
-                                    className="pl-8 w-48"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button>
-                                        <PlusCircle className="mr-2"/> Ajouter un marchand
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Créer un nouveau marchand</DialogTitle>
-                                    </DialogHeader>
-                                    <AdminCreateUserForm onUserCreated={handleUserCreated} allowedRoles={['merchant']} />
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Gestion des Marchands ({filteredMerchants.length})</CardTitle>
+                        <CardDescription>Consultez la liste des marchands. Cliquez pour voir les détails et les transactions.</CardDescription>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    {allUsers.length === 0 ? (
-                        <div className="flex justify-center items-center h-64">
-                            <Loader2 className="animate-spin h-8 w-8" />
+                    <div className="flex items-center gap-2">
+                         <div className="relative">
+                            <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Rechercher un marchand..." 
+                                className="pl-8 w-48"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Marchand</TableHead>
-                                    <TableHead>Code Marchand</TableHead>
-                                    <TableHead>Solde</TableHead>
-                                    <TableHead>Statut</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {filteredMerchants.map(user => (
-                                    <TableRow key={user.id} onClick={() => handleUserSelect(user)} className="cursor-pointer">
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-10 w-10">
-                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                                                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-medium">{user.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                                                </div>
+                        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <PlusCircle className="mr-2"/> Ajouter un marchand
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Créer un nouveau marchand</DialogTitle>
+                                </DialogHeader>
+                                <AdminCreateUserForm onUserCreated={handleUserCreated} allowedRoles={['merchant']} />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {allUsers.length === 0 ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="animate-spin h-8 w-8" />
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Marchand</TableHead>
+                                <TableHead>Code Marchand</TableHead>
+                                <TableHead>Solde</TableHead>
+                                <TableHead>Statut</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {filteredMerchants.map(user => (
+                                <TableRow key={user.id} onClick={() => handleUserSelect(user)} className="cursor-pointer">
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
+                                                <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{user.name}</p>
+                                                <p className="text-sm text-muted-foreground">{user.email}</p>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>{user.merchantCode}</TableCell>
-                                        <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
-                                                {user.isSuspended ? "Suspendu" : "Actif"}
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                    {allUsers.length > 0 && filteredMerchants.length === 0 && (
-                        <div className="text-center p-8">
-                            <p>Aucun marchand ne correspond à votre recherche.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </TransactionsProvider>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{user.merchantCode}</TableCell>
+                                    <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
+                                            {user.isSuspended ? "Suspendu" : "Actif"}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                )}
+                {allUsers.length > 0 && filteredMerchants.length === 0 && (
+                    <div className="text-center p-8">
+                        <p>Aucun marchand ne correspond à votre recherche.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     )
 }

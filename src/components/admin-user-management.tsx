@@ -63,108 +63,106 @@ export default function AdminUserManagement({ allUsers, refreshUsers }: AdminUse
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
+        return (
+            <TransactionsProvider alias={selectedUser.alias}>
+                <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
+            </TransactionsProvider>
+        )
     }
 
-    // Admin needs a context for transactions, but it's not their own alias.
-    // This is a placeholder for a central admin alias to provide transaction context if needed.
-    const adminAlias = "+221775478575";
-
     return (
-        <TransactionsProvider alias={adminAlias}>
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Gestion des Utilisateurs ({filteredUsers.length})</CardTitle>
-                            <CardDescription>Consultez la liste des clients et du personnel interne. Cliquez pour voir les détails.</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Rechercher..." 
-                                    className="pl-8 w-48"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button>
-                                        <PlusCircle className="mr-2"/> Créer un utilisateur
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
-                                    </DialogHeader>
-                                    <AdminCreateUserForm onUserCreated={handleUserCreated} allowedRoles={['support', 'admin', 'merchant']} />
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Gestion des Utilisateurs ({filteredUsers.length})</CardTitle>
+                        <CardDescription>Consultez la liste des clients et du personnel interne. Cliquez pour voir les détails.</CardDescription>
                     </div>
-                </CardHeader>
-                <CardContent>
-                     {allUsers.length === 0 ? (
-                        <div className="flex justify-center items-center h-64">
-                            <Loader2 className="animate-spin h-8 w-8" />
+                    <div className="flex items-center gap-2">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Rechercher..." 
+                                className="pl-8 w-48"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Utilisateur</TableHead>
-                                    <TableHead>Identifiant</TableHead>
-                                    <TableHead>Rôle</TableHead>
-                                    <TableHead>Solde Principal</TableHead>
-                                    <TableHead>Statut</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {filteredUsers.map(user => (
-                                    <TableRow key={user.alias} onClick={() => handleUserSelect(user)} className="cursor-pointer">
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-10 w-10">
-                                                    {/* Avatar handling needs to be adapted for Firestore */}
-                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                                                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-medium">{user.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                                                </div>
+                        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <PlusCircle className="mr-2"/> Créer un utilisateur
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Créer un nouvel utilisateur interne</DialogTitle>
+                                </DialogHeader>
+                                <AdminCreateUserForm onUserCreated={handleUserCreated} allowedRoles={['support', 'admin', 'merchant']} />
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                 {allUsers.length === 0 ? (
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="animate-spin h-8 w-8" />
+                    </div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Utilisateur</TableHead>
+                                <TableHead>Identifiant</TableHead>
+                                <TableHead>Rôle</TableHead>
+                                <TableHead>Solde Principal</TableHead>
+                                <TableHead>Statut</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {filteredUsers.map(user => (
+                                <TableRow key={user.alias} onClick={() => handleUserSelect(user)} className="cursor-pointer">
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                {/* Avatar handling needs to be adapted for Firestore */}
+                                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
+                                                <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{user.name}</p>
+                                                <p className="text-sm text-muted-foreground">{user.email}</p>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {user.role === 'merchant' ? (
-                                                <Badge variant="outline">{user.merchantCode}</Badge>
-                                            ) : (
-                                                user.alias
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={roleVariantMap[user.role?.toLowerCase() || 'user'] || 'outline'}>{user.role || 'user'}</Badge>
-                                        </TableCell>
-                                        <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
-                                                {user.isSuspended ? "Suspendu" : "Actif"}
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                    {allUsers.length > 0 && filteredUsers.length === 0 && (
-                        <div className="text-center p-8">
-                            <p>Aucun utilisateur ne correspond à votre recherche.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </TransactionsProvider>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        {user.role === 'merchant' ? (
+                                            <Badge variant="outline">{user.merchantCode}</Badge>
+                                        ) : (
+                                            user.alias
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant={roleVariantMap[user.role?.toLowerCase() || 'user'] || 'outline'}>{user.role || 'user'}</Badge>
+                                    </TableCell>
+                                    <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
+                                            {user.isSuspended ? "Suspendu" : "Actif"}
+                                        </Badge>
+                                    </TableCell>
+                                </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                )}
+                {allUsers.length > 0 && filteredUsers.length === 0 && (
+                    <div className="text-center p-8">
+                        <p>Aucun utilisateur ne correspond à votre recherche.</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     )
 }
