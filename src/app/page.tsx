@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,7 +20,7 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider, useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import AuthForm from '@/components/login-form';
 import Dashboard from '@/components/dashboard';
@@ -101,7 +102,7 @@ function AuthWrapper() {
     }, [user, firestore]);
     
     // Use the useDoc hook to get the user profile data
-    const { data: userDoc, isLoading: isUserDocLoading } = useDoc<Omit<UserInfo, 'id' | 'alias' | 'name'>>(userDocRef);
+    const { data: userDoc, isLoading: isUserDocLoading, error: userDocError } = useDoc<Omit<UserInfo, 'id' | 'alias' | 'name'>>(userDocRef);
 
     // Main loading state that waits for both Firebase Auth and Firestore profile
     const isLoading = isUserLoading || (user && isUserDocLoading);
@@ -116,7 +117,7 @@ function AuthWrapper() {
                     description: "Votre compte a été suspendu. Veuillez contacter le support.",
                     variant: "destructive",
                 });
-                logout(); // Use the central logout function
+                logout();
                 setUserInfo(null);
                 return;
             }
@@ -136,12 +137,15 @@ function AuthWrapper() {
         } else {
              // If user is logged out or profile is missing, ensure userInfo is null
             setUserInfo(null);
-            if (user && !userDoc && !isLoading) { // Check isLoading again to prevent premature warnings
+            if (user && !userDoc && !isUserDocLoading) { // Check isLoading again to prevent premature warnings
                 // This can happen briefly during signup, but if it persists, it's a data integrity issue.
-                console.warn("User is authenticated, but no profile document was found. This might be temporary during signup.");
+                console.warn("User is authenticated, but no profile document was found. This might be temporary during signup or indicate a data issue.");
+                 if(userDocError) {
+                    console.error("Firestore error fetching user profile:", userDocError);
+                 }
             }
         }
-    }, [user, userDoc, isLoading, toast]);
+    }, [user, userDoc, isUserDocLoading, isLoading, toast, userDocError]);
 
 
     const handleLogout = () => {
@@ -186,10 +190,7 @@ function AuthWrapper() {
     );
 }
 
+// The main export is just the AuthWrapper now, FirebaseClientProvider is in layout.tsx
 export default function AuthenticationGate() {
-    return (
-        <FirebaseClientProvider>
-            <AuthWrapper />
-        </FirebaseClientProvider>
-    );
+    return <AuthWrapper />;
 }

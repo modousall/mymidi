@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -58,7 +59,7 @@ export function useCollection<T = any>(
   type StateDataType = ResultItemType[] | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start as loading
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -72,7 +73,6 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    // Directly use memoizedTargetRefOrQuery as it's assumed to be the final query
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
@@ -106,13 +106,10 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, [memoizedTargetRefOrQuery]);
 
   if(memoizedTargetRefOrQuery && !(memoizedTargetRefOrQuery as any).__memo) {
-    // This warning helps developers catch performance issues.
-    // It's a warning instead of an error to prevent crashing the app during development
-    // if a one-off, unmemoized query is acceptable in a specific context.
-    console.warn('Performance warning: A non-memoized query was passed to useCollection. Consider wrapping a `useMemoFirebase()` to prevent unnecessary re-renders and Firestore reads. Query:', JSON.stringify(memoizedTargetRefOrQuery));
+    console.warn('Performance warning: A non-memoized query was passed to useCollection. Consider wrapping it in `useMemoFirebase()` to prevent unnecessary re-renders and Firestore reads. Query:', JSON.stringify(memoizedTargetRefOrQuery));
   }
   
   return { data, isLoading, error };
