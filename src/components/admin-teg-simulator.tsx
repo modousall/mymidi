@@ -30,7 +30,7 @@ const html2canvas = dynamic(() => import('html2canvas'), { ssr: false });
 const jsPDF = dynamic(() => import('jspdf').then(mod => mod.jsPDF), { ssr: false });
 
 
-const MAX_ANNUAL_TEG = 0.24; // 24%
+const MAX_ANNUAL_TEG = 24.0; // 24%
 
 const simulatorSchema = z.object({
   loanAmount: z.coerce.number().positive("Le montant doit être positif.").min(1000),
@@ -63,8 +63,9 @@ const calculatePMT = (rate: number, nper: number, pv: number): number => {
 const calculateRATE = (nper: number, pmt: number, pv: number, guess = 0.01, maxIter = 20, tol = 1e-6): number => {
     let rate = guess;
     for (let i = 0; i < maxIter; i++) {
-        const f = pv * Math.pow(1 + rate, nper) + pmt * (Math.pow(1 + rate, nper) - 1) / rate;
-        const f_prime = pv * nper * Math.pow(1 + rate, nper - 1) + pmt * ((nper * rate * Math.pow(1 + rate, nper - 1) - (Math.pow(1 + rate, nper) - 1)) / (rate * rate));
+        const f = pv + pmt * (1 - Math.pow(1 + rate, -nper)) / rate;
+        const f_prime = pmt * ( nper * Math.pow(1+rate, -nper-1) * rate - (1 - Math.pow(1+rate,-nper)) ) / (rate*rate)
+        if (f_prime === 0) return rate; // Avoid division by zero
         const newRate = rate - f / f_prime;
         if (Math.abs(newRate - rate) < tol) return newRate;
         rate = newRate;
@@ -93,33 +94,37 @@ export default function AdminTegSimulator() {
     const watchedValues = form.watch();
     const { setValue, trigger } = form;
 
-    useEffect(() => {
+    const derivedValues = useMemo(() => {
         const { loanAmount, duration, periodicity, annualTeg, marginRate, adjustmentBasis } = watchedValues;
-        
-        if (loanAmount <= 0 || duration <= 0) return;
-        
+
+        if (loanAmount <= 0 || duration <= 0) return { newMarginRate: marginRate, newAnnualTeg: annualTeg };
+
         const periodsInYear = getPeriodsInYear(periodicity);
-        
+
         if (adjustmentBasis === 'teg') {
             const periodicTeg = Math.pow(1 + annualTeg / 100, 1 / periodsInYear) - 1;
             const installment = calculatePMT(periodicTeg, duration, loanAmount);
             const calculatedMarginRate = calculateRATE(duration, -installment, loanAmount) * 100;
-             if (Math.abs(calculatedMarginRate - marginRate) > 0.001) {
-                setValue('marginRate', isNaN(calculatedMarginRate) ? 0 : calculatedMarginRate, { shouldValidate: true });
-             }
-
-        } else if (adjustmentBasis === 'margin') {
+            return { newMarginRate: isNaN(calculatedMarginRate) ? 0 : calculatedMarginRate, newAnnualTeg: annualTeg };
+        } else { // adjustmentBasis === 'margin'
             const periodicMargin = marginRate / 100;
             const installment = calculatePMT(periodicMargin, duration, loanAmount);
             const calculatedPeriodicTeg = calculateRATE(duration, -installment, loanAmount);
             const calculatedAnnualTeg = (Math.pow(1 + calculatedPeriodicTeg, periodsInYear) - 1) * 100;
-            if (Math.abs(calculatedAnnualTeg - annualTeg) > 0.001) {
-                setValue('annualTeg', isNaN(calculatedAnnualTeg) ? 0 : calculatedAnnualTeg, { shouldValidate: true });
-            }
+            return { newMarginRate: marginRate, newAnnualTeg: isNaN(calculatedAnnualTeg) ? 0 : calculatedAnnualTeg };
         }
-        trigger();
+    }, [watchedValues]);
 
-    }, [watchedValues.loanAmount, watchedValues.duration, watchedValues.periodicity, watchedValues.annualTeg, watchedValues.marginRate, watchedValues.adjustmentBasis, setValue, trigger]);
+    useEffect(() => {
+        const { newMarginRate, newAnnualTeg } = derivedValues;
+        const { adjustmentBasis } = watchedValues;
+        if (adjustmentBasis === 'teg' && Math.abs(newMarginRate - watchedValues.marginRate) > 0.001) {
+            setValue('marginRate', newMarginRate, { shouldValidate: true });
+        }
+        if (adjustmentBasis === 'margin' && Math.abs(newAnnualTeg - watchedValues.annualTeg) > 0.001) {
+            setValue('annualTeg', newAnnualTeg, { shouldValidate: true });
+        }
+    }, [derivedValues, setValue, watchedValues]);
 
 
     const results = useMemo(() => {
@@ -276,7 +281,7 @@ export default function AdminTegSimulator() {
                                  <div className="flex justify-between"><span className="text-muted-foreground">Total remboursé</span> <span>{formatCurrency(results.totalRepaid)}</span></div>
                                  <Separator className="my-2"/>
                                  <div className="flex justify-between font-bold"><span className="text-muted-foreground">TEG Annuel</span> <span>{watchedValues.annualTeg.toFixed(2)} %</span></div>
-                                 {watchedValues.annualTeg > MAX_ANNUAL_TEG * 100 && <Alert variant="destructive"><AlertTriangle/><AlertTitle>TEG Annuel Dépasse {MAX_ANNUAL_TEG * 100}%</AlertTitle></Alert>}
+                                 {watchedValues.annualTeg > MAX_ANNUAL_TEG && <Alert variant="destructive"><AlertTriangle/><AlertTitle>TEG Annuel Dépasse {MAX_ANNUAL_TEG}%</AlertTitle></Alert>}
                             </CardContent>
                         </Card>
                     )}

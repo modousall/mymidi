@@ -92,7 +92,9 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
           <CommandInput 
             placeholder="Saisir un numéro ou rechercher..." 
             onValueChange={(search) => {
-                if (!suggestions.some(s => s.value === search || s.label === search)) {
+                const searchLower = search.toLowerCase();
+                const found = suggestions.some(s => s.search.toLowerCase().includes(searchLower));
+                if (!found) {
                     onChange(search);
                 }
             }}
