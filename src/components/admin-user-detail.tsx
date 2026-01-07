@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Button } from "./ui/button";
 import { ArrowLeft, User, TrendingUp, CreditCard, ShieldCheck, KeyRound, UserX, UserCheck, Ban, Wallet, Settings, Users as TontineIcon, Clock, Briefcase, PiggyBank, Eye, EyeOff, X, Edit, HandCoins, Check, Building, FileText } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "./ui/card";
@@ -32,7 +32,6 @@ import { updateDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/hooks/use-transactions';
 import { TransactionsProvider } from '@/hooks/use-transactions';
 import { AccountProvider } from '@/hooks/use-account';
-import React from 'react';
 
 
 // Import product components
@@ -142,7 +141,7 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
     )
 }
 
-const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: React.ReactNode }) => {
+export const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: React.ReactNode }) => {
     const accountId = user.role === 'merchant' ? `acc_merchant_${user.id}` : `acc_user_${user.id}`;
     const accountType = user.role === 'merchant' ? 'merchant' : 'user';
 
@@ -306,131 +305,129 @@ export default function AdminUserDetail({ user, onBack, onUpdate, transactions }
 
 
     return (
-         <UserServiceProvider user={user}>
-            <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                    <Button onClick={onBack} variant="outline" size="icon">
-                        <ArrowLeft />
-                    </Button>
-                    <div>
-                        <h2 className="text-2xl font-bold">Détail de l'utilisateur</h2>
-                        <p className="text-muted-foreground">Vue d'ensemble du compte de {userName}</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 space-y-6">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center gap-4">
-                                <Avatar className="h-16 w-16">
-                                    <AvatarImage src={user.avatar ?? undefined} alt={userName} />
-                                    <AvatarFallback>{user.firstName?.charAt(0) ?? 'U'}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-xl">{userName}</CardTitle>
-                                    <CardDescription>{user.alias}</CardDescription>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Email</span>
-                                    <span>{user.email}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                    <span className="text-muted-foreground">Rôle</span>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant={user.role === 'superadmin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
-                                        <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
-                                            <DialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" disabled={user.role === 'superadmin'}>
-                                                    <Edit className="h-3 w-3" />
-                                                </Button>
-                                            </DialogTrigger>
-                                            {isRoleDialogOpen && <RoleManagementDialog user={user} onClose={() => setIsRoleDialogOpen(false)} onUpdate={onUpdate} />}
-                                        </Dialog>
-                                    </div>
-                            </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Statut</span>
-                                    <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
-                                        {user.isSuspended ? "Suspendu" : "Actif"}
-                                    </Badge>
-                            </div>
-                            <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Solde Principal</span>
-                                    <span className="font-semibold">{formatCurrency(user.balance)}</span>
-                            </div>
-                            {user.role === 'merchant' && (
-                                <>
-                                     <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Nom de la marque</span> <span className="font-semibold">{(user as any).brandName || "N/A"}</span></div>
-                                     <div className="flex justify-between"><span className="text-muted-foreground">Code Marchand</span> <span className="font-semibold">{user.merchantCode || "N/A"}</span></div>
-                                     <div className="flex justify-between"><span className="text-muted-foreground">NINEA</span> <span className="font-semibold">{(user as any).ninea || "N/A"}</span></div>
-                                     <div className="flex justify-between"><span className="text-muted-foreground">RCCM</span> <span className="font-semibold">{(user as any).rccm || "N/A"}</span></div>
-                                </>
-                            )}
-                            </CardContent>
-                        </Card>
-                        
-                        <Card>
-                            <CardHeader><CardTitle>Actions de gestion</CardTitle></CardHeader>
-                            <CardContent className="grid grid-cols-2 gap-2">
-                                <Dialog open={isPinDialogOpen} onOpenChange={setIsPinDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="outline" disabled={user.role === 'superadmin'}>
-                                            <KeyRound className="mr-2"/> Réinitialiser PIN
-                                        </Button>
-                                    </DialogTrigger>
-                                    {isPinDialogOpen && <ResetPinDialog user={user} onClose={() => setIsPinDialogOpen(false)} />}
-                                </Dialog>
-                                <Button variant="destructive" onClick={handleToggleSuspension} disabled={user.role === 'superadmin'}>
-                                    {user.isSuspended ? <UserCheck className="mr-2"/> : <UserX className="mr-2"/>}
-                                    {user.isSuspended ? 'Réactiver' : 'Suspendre'}
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="lg:col-span-2 space-y-6">
-                         {user.role === 'user' && (
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <SummaryCard title="Solde Principal" balance={user.balance} icon={<Wallet className="h-5 w-5 text-white" />} color="from-primary to-blue-400" onClick={() => setActiveServiceView('transactions')} />
-                                <SummaryCard title="Carte Virtuelle" balance={virtualCardBalance} icon={<CreditCard className="h-5 w-5 text-white" />} color="from-sky-500 to-cyan-400" onClick={() => setActiveServiceView('ma-carte')} />
-                                <SummaryCard title="Mes Coffres" balance={totalVaultsBalance} icon={<PiggyBank className="h-5 w-5 text-white" />} color="from-amber-500 to-yellow-400" onClick={() => setActiveServiceView('coffres')} />
-                                <SummaryCard title="Tontines" balance={totalTontinesBalance} icon={<TontineIcon className="h-5 w-5 text-white" />} color="from-emerald-500 to-green-400" onClick={() => setActiveServiceView('tontine')}/>
-                            </div>
-                        )}
-                        {user.role === 'merchant' && (
-                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <SummaryCard title="Chiffre d'Affaires (jour)" balance={todaysRevenue} icon={<TrendingUp className="h-5 w-5 text-white" />} color="from-primary to-blue-400" onClick={handleScrollToTransactions} />
-                                <SummaryCard title="Transactions (jour)" balance={todaysTransactionsCount} icon={<Briefcase className="h-5 w-5 text-white" />} color="from-sky-500 to-cyan-400" isCurrency={false} onClick={handleScrollToTransactions} />
-                                <SummaryCard title="Solde Marchand" balance={user.balance} icon={<Wallet className="h-5 w-5 text-white" />} color="from-emerald-500 to-green-400" onClick={handleScrollToTransactions} />
-                                <SummaryCard title="Crédit en Cours" balance={merchantCreditToCustomers} icon={<HandCoins className="h-5 w-5 text-white" />} color="from-amber-500 to-yellow-400" onClick={() => setActiveServiceView('credit-details')} />
-                            </div>
-                        )}
-                        <Card ref={transactionHistoryRef}>
-                            <CardHeader>
-                                <div className="flex justify-between items-center">
-                                    <CardTitle>
-                                        {activeServiceView === 'transactions' && "Historique des transactions"}
-                                        {activeServiceView === 'ma-carte' && "Gestion de la Carte Virtuelle"}
-                                        {activeServiceView === 'coffres' && "Gestion des Coffres"}
-                                        {activeServiceView === 'tontine' && "Gestion des Tontines"}
-                                        {activeServiceView === 'credit-details' && `Crédits Marchands pour ${userName}`}
-                                    </CardTitle>
-                                    {activeServiceView !== 'transactions' && (
-                                        <Button variant="ghost" size="icon" onClick={() => setActiveServiceView('transactions')}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {renderServiceView()}
-                            </CardContent>
-                        </Card>
-                    </div>
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <Button onClick={onBack} variant="outline" size="icon">
+                    <ArrowLeft />
+                </Button>
+                <div>
+                    <h2 className="text-2xl font-bold">Détail de l'utilisateur</h2>
+                    <p className="text-muted-foreground">Vue d'ensemble du compte de {userName}</p>
                 </div>
             </div>
-        </UserServiceProvider>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1 space-y-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center gap-4">
+                            <Avatar className="h-16 w-16">
+                                <AvatarImage src={user.avatar ?? undefined} alt={userName} />
+                                <AvatarFallback>{user.firstName?.charAt(0) ?? 'U'}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <CardTitle className="text-xl">{userName}</CardTitle>
+                                <CardDescription>{user.alias}</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                                <span className="text-muted-foreground">Email</span>
+                                <span>{user.email}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Rôle</span>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant={user.role === 'superadmin' ? 'destructive' : 'secondary'}>{user.role}</Badge>
+                                    <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" disabled={user.role === 'superadmin'}>
+                                                <Edit className="h-3 w-3" />
+                                            </Button>
+                                        </DialogTrigger>
+                                        {isRoleDialogOpen && <RoleManagementDialog user={user} onClose={() => setIsRoleDialogOpen(false)} onUpdate={onUpdate} />}
+                                    </Dialog>
+                                </div>
+                        </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Statut</span>
+                                <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
+                                    {user.isSuspended ? "Suspendu" : "Actif"}
+                                </Badge>
+                        </div>
+                        <div className="flex justify-between">
+                                <span className="text-muted-foreground">Solde Principal</span>
+                                <span className="font-semibold">{formatCurrency(user.balance)}</span>
+                        </div>
+                        {user.role === 'merchant' && (
+                            <>
+                                 <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Nom de la marque</span> <span className="font-semibold">{(user as any).brandName || "N/A"}</span></div>
+                                 <div className="flex justify-between"><span className="text-muted-foreground">Code Marchand</span> <span className="font-semibold">{user.merchantCode || "N/A"}</span></div>
+                                 <div className="flex justify-between"><span className="text-muted-foreground">NINEA</span> <span className="font-semibold">{(user as any).ninea || "N/A"}</span></div>
+                                 <div className="flex justify-between"><span className="text-muted-foreground">RCCM</span> <span className="font-semibold">{(user as any).rccm || "N/A"}</span></div>
+                            </>
+                        )}
+                        </CardContent>
+                    </Card>
+                    
+                    <Card>
+                        <CardHeader><CardTitle>Actions de gestion</CardTitle></CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-2">
+                            <Dialog open={isPinDialogOpen} onOpenChange={setIsPinDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" disabled={user.role === 'superadmin'}>
+                                        <KeyRound className="mr-2"/> Réinitialiser PIN
+                                    </Button>
+                                </DialogTrigger>
+                                {isPinDialogOpen && <ResetPinDialog user={user} onClose={() => setIsPinDialogOpen(false)} />}
+                            </Dialog>
+                            <Button variant="destructive" onClick={handleToggleSuspension} disabled={user.role === 'superadmin'}>
+                                {user.isSuspended ? <UserCheck className="mr-2"/> : <UserX className="mr-2"/>}
+                                {user.isSuspended ? 'Réactiver' : 'Suspendre'}
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="lg:col-span-2 space-y-6">
+                     {user.role === 'user' && (
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <SummaryCard title="Solde Principal" balance={user.balance} icon={<Wallet className="h-5 w-5 text-white" />} color="from-primary to-blue-400" onClick={() => setActiveServiceView('transactions')} />
+                            <SummaryCard title="Carte Virtuelle" balance={virtualCardBalance} icon={<CreditCard className="h-5 w-5 text-white" />} color="from-sky-500 to-cyan-400" onClick={() => setActiveServiceView('ma-carte')} />
+                            <SummaryCard title="Mes Coffres" balance={totalVaultsBalance} icon={<PiggyBank className="h-5 w-5 text-white" />} color="from-amber-500 to-yellow-400" onClick={() => setActiveServiceView('coffres')} />
+                            <SummaryCard title="Tontines" balance={totalTontinesBalance} icon={<TontineIcon className="h-5 w-5 text-white" />} color="from-emerald-500 to-green-400" onClick={() => setActiveServiceView('tontine')}/>
+                        </div>
+                    )}
+                    {user.role === 'merchant' && (
+                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <SummaryCard title="Chiffre d'Affaires (jour)" balance={todaysRevenue} icon={<TrendingUp className="h-5 w-5 text-white" />} color="from-primary to-blue-400" onClick={handleScrollToTransactions} />
+                            <SummaryCard title="Transactions (jour)" balance={todaysTransactionsCount} icon={<Briefcase className="h-5 w-5 text-white" />} color="from-sky-500 to-cyan-400" isCurrency={false} onClick={handleScrollToTransactions} />
+                            <SummaryCard title="Solde Marchand" balance={user.balance} icon={<Wallet className="h-5 w-5 text-white" />} color="from-emerald-500 to-green-400" onClick={handleScrollToTransactions} />
+                            <SummaryCard title="Crédit en Cours" balance={merchantCreditToCustomers} icon={<HandCoins className="h-5 w-5 text-white" />} color="from-amber-500 to-yellow-400" onClick={() => setActiveServiceView('credit-details')} />
+                        </div>
+                    )}
+                    <Card ref={transactionHistoryRef}>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle>
+                                    {activeServiceView === 'transactions' && "Historique des transactions"}
+                                    {activeServiceView === 'ma-carte' && "Gestion de la Carte Virtuelle"}
+                                    {activeServiceView === 'coffres' && "Gestion des Coffres"}
+                                    {activeServiceView === 'tontine' && "Gestion des Tontines"}
+                                    {activeServiceView === 'credit-details' && `Crédits Marchands pour ${userName}`}
+                                </CardTitle>
+                                {activeServiceView !== 'transactions' && (
+                                    <Button variant="ghost" size="icon" onClick={() => setActiveServiceView('transactions')}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {renderServiceView()}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
     )
 }

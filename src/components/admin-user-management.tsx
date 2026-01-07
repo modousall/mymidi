@@ -10,7 +10,7 @@ import { Button } from "./ui/button";
 import { Search, PlusCircle, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "./ui/input";
-import AdminUserDetail from "./admin-user-detail";
+import AdminUserDetail, { UserServiceProvider } from "./admin-user-detail";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
 import { formatCurrency } from "@/lib/utils";
@@ -64,9 +64,14 @@ export default function AdminUserManagement({ allUsers, refreshUsers, allTransac
     }
 
     if (selectedUser) {
-        const accountId = `acc_user_${selectedUser.id}`;
-        const userTransactions = allTransactions.filter(tx => tx.accountId === accountId);
-        return <AdminUserDetail user={selectedUser} transactions={userTransactions} onBack={handleBackToList} onUpdate={handleBackToList} />
+        const userTransactions = allTransactions.filter(tx => 
+            tx.accountId === `acc_user_${selectedUser.id}` || tx.accountId === `acc_merchant_${selectedUser.id}`
+        );
+        return (
+            <UserServiceProvider user={selectedUser}>
+                <AdminUserDetail user={selectedUser} transactions={userTransactions} onBack={handleBackToList} onUpdate={handleBackToList} />
+            </UserServiceProvider>
+        );
     }
 
     return (
