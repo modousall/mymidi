@@ -90,7 +90,7 @@ export default function CreditRequestDetails({ request }: { request: BnplRequest
                 )}
 
             </div>
-            <DialogFooter>
+            <DialogFooter className="justify-between">
                 <DialogClose asChild><Button variant="ghost">Fermer</Button></DialogClose>
                 <Button onClick={handleDownloadPV}><Download className="mr-2"/> Télécharger le PV</Button>
             </DialogFooter>
