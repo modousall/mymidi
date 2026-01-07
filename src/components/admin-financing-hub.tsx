@@ -8,10 +8,16 @@ import AdminFinancingManagement from "./admin-financing-management";
 import { Button } from "./ui/button";
 import { PlusCircle } from "lucide-react";
 import AdminClientFinancingForm from "./admin-client-financing-form";
+import type { ManagedUser } from '@/lib/types';
+
+
+type AdminFinancingHubProps = {
+    allUsers: ManagedUser[];
+}
 
 type View = 'hub' | 'create';
 
-export default function AdminFinancingHub() {
+export default function AdminFinancingHub({ allUsers }: AdminFinancingHubProps) {
     const [view, setView] = useState<View>('hub');
 
     if (view === 'create') {
@@ -31,10 +37,10 @@ export default function AdminFinancingHub() {
                     <TabsTrigger value="internal">Financement Interne</TabsTrigger>
                 </TabsList>
                 <TabsContent value="merchant" className="mt-6">
-                    <AdminBnplManagement />
+                    <AdminBnplManagement allUsers={allUsers} />
                 </TabsContent>
                 <TabsContent value="internal" className="mt-6">
-                    <AdminFinancingManagement />
+                    <AdminFinancingManagement allUsers={allUsers} />
                 </TabsContent>
             </Tabs>
         </div>

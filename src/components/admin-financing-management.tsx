@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { useIslamicFinancing } from '@/hooks/use-islamic-financing';
-import type { FinancingRequest, FinancingStatus } from '@/lib/types';
+import type { FinancingRequest, FinancingStatus, ManagedUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
@@ -16,8 +16,6 @@ import AdminUserDetail from './admin-user-detail';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import { formatCurrency } from '@/lib/utils';
 import FinancingRequestDetails from './financing-request-details';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
 
 
 const formatDate = (dateString: string) => format(new Date(dateString), 'Pp', { locale: fr });
@@ -28,15 +26,10 @@ const statusConfig: Record<FinancingStatus, { text: string; badgeVariant: 'defau
     'rejected': { text: "Rejetée", badgeVariant: "destructive", icon: <X className="h-4 w-4" /> },
 };
 
-export default function AdminFinancingManagement() {
+export default function AdminFinancingManagement({ allUsers }: { allUsers: ManagedUser[] }) {
     const { allRequests, updateRequestStatus } = useIslamicFinancing();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedUser, setSelectedUser] = useState<any | null>(null);
-    
-    const firestore = useFirestore();
-    const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-    const { data: users } = useCollection(usersCollection);
-
+    const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
 
     const filteredRequests = useMemo(() => {
         return allRequests.filter(req => 
@@ -49,8 +42,7 @@ export default function AdminFinancingManagement() {
     };
 
     const handleUserSelect = (alias: string) => {
-        if (!users) return;
-        const userToView = users.find(u => u.alias === alias);
+        const userToView = allUsers.find(u => u.alias === alias);
         if (userToView) {
             setSelectedUser(userToView);
         }

@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { useBnpl } from '@/hooks/use-bnpl';
-import type { BnplRequest, BnplStatus } from '@/lib/types';
+import type { BnplRequest, BnplStatus, ManagedUser } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
@@ -16,8 +16,6 @@ import AdminUserDetail from './admin-user-detail';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
 
 
 const formatDate = (dateString: string) => format(new Date(dateString), 'Pp', { locale: fr });
@@ -29,15 +27,10 @@ const statusConfig: Record<BnplStatus, { text: string; badgeVariant: 'default' |
 };
 
 
-export default function AdminBnplManagement() {
+export default function AdminBnplManagement({ allUsers }: { allUsers: ManagedUser[] }) {
     const { allRequests, updateRequestStatus, kpis } = useBnpl();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedUser, setSelectedUser] = useState<any | null>(null);
-
-    const firestore = useFirestore();
-    const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-    const { data: users } = useCollection(usersCollection);
-
+    const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
 
     const filteredRequests = useMemo(() => {
         return allRequests.filter(req => 
@@ -51,8 +44,7 @@ export default function AdminBnplManagement() {
     };
 
     const handleUserSelect = (alias: string) => {
-        if (!users) return;
-        const userToView = users.find(u => u.alias === alias);
+        const userToView = allUsers.find(u => u.alias === alias);
         if (userToView) {
             setSelectedUser(userToView);
         }

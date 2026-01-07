@@ -11,7 +11,7 @@ import { Badge } from './ui/badge';
 import AdminUserDetail from './admin-user-detail';
 import { Input } from './ui/input';
 import { formatCurrency } from '@/lib/utils';
-import type { ManagedUserWithDetails } from '@/hooks/use-user-management';
+import type { ManagedUserWithDetails } from '@/lib/types';
 
 
 type Feature = 'mainBalance' | 'vaults' | 'virtualCards' | 'tontine';

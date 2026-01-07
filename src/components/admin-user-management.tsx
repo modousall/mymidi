@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AdminCreateUserForm from "./admin-create-user-form";
 import { TransactionsProvider } from "@/hooks/use-transactions";
 import { formatCurrency } from "@/lib/utils";
-import { useUserManagement } from "@/hooks/use-user-management";
+import type { ManagedUser } from "@/lib/types";
 
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
@@ -30,22 +30,23 @@ const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 
     "responsable agence": 'secondary',
 };
 
+type AdminUserManagementProps = {
+    allUsers: ManagedUser[];
+    refreshUsers: () => void;
+}
 
-export default function AdminUserManagement() {
-    const { users, refreshUsers } = useUserManagement();
-
+export default function AdminUserManagement({ allUsers, refreshUsers }: AdminUserManagementProps) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedUser, setSelectedUser] = useState<any | null>(null);
+    const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const filteredUsers = useMemo(() => {
-        if (!users) return [];
-        return users.filter(user => 
+        return allUsers.filter(user => 
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.alias.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [users, searchTerm]);
+    }, [allUsers, searchTerm]);
     
     const handleUserSelect = (user: any) => {
         setSelectedUser(user);
@@ -105,7 +106,7 @@ export default function AdminUserManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                     {users.length === 0 ? (
+                     {allUsers.length === 0 ? (
                         <div className="flex justify-center items-center h-64">
                             <Loader2 className="animate-spin h-8 w-8" />
                         </div>
@@ -157,7 +158,7 @@ export default function AdminUserManagement() {
                             </TableBody>
                         </Table>
                     )}
-                    {users.length > 0 && filteredUsers.length === 0 && (
+                    {allUsers.length > 0 && filteredUsers.length === 0 && (
                         <div className="text-center p-8">
                             <p>Aucun utilisateur ne correspond à votre recherche.</p>
                         </div>

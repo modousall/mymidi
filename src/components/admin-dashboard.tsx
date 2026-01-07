@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Users, BarChart3, ShieldCheck, Blocks, Building, HandCoins, TrendingUp, LayoutTemplate, FileText } from 'lucide-react';
+import { LogOut, Users, BarChart3, ShieldCheck, Blocks, Building, HandCoins, TrendingUp, LayoutTemplate, FileText, Loader2 } from 'lucide-react';
 import AdminUserManagement from "./admin-user-management";
 import AdminTransactionAnalysis from "./admin-transaction-analysis";
 import AdminRoleManagement from "./admin-role-management";
@@ -14,6 +14,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import AdminCashManagement from "./admin-cash-management";
 import AdminCms from "./admin-cms";
 import AdminReportingHub from "./admin-reporting-hub";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, collectionGroup, query } from 'firebase/firestore';
+import type { ManagedUser, Transaction } from '@/lib/types';
+
+
+const useAdminData = () => {
+    const firestore = useFirestore();
+
+    const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: usersData, isLoading: isLoadingUsers, refresh: refreshUsers } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
+    
+    const users = useMemo(() => {
+        if (!usersData) return [];
+        return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
+    }, [usersData]);
+
+    const transactionsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'transactions')), [firestore]);
+    const { data: allTransactions, isLoading: isLoadingTransactions } = useCollection<Transaction>(transactionsQuery);
+
+    return {
+        users: users || [],
+        allTransactions: allTransactions || [],
+        isLoading: isLoadingUsers || isLoadingTransactions,
+        refreshUsers
+    }
+}
+
 
 type AdminDashboardProps = {
     onExit: () => void;
@@ -35,25 +62,30 @@ const adminFeatures: {id: AdminView, title: string, description: string, icon: J
 
 export default function AdminDashboard({ onExit }: AdminDashboardProps) {
     const [view, setView] = useState<AdminView>('dashboard');
+    const { users, allTransactions, isLoading, refreshUsers } = useAdminData();
 
     const renderContent = () => {
+        if (isLoading && view !== 'dashboard') {
+            return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin h-8 w-8" /></div>
+        }
+
         switch(view) {
             case 'users':
-                return <AdminUserManagement />;
+                return <AdminUserManagement allUsers={users} refreshUsers={refreshUsers} />;
             case 'merchants':
-                return <AdminMerchantManagement />;
+                return <AdminMerchantManagement allUsers={users} refreshUsers={refreshUsers} />;
             case 'transactions':
-                return <AdminTransactionAnalysis />;
+                return <AdminTransactionAnalysis allTransactions={allTransactions} />;
             case 'financing':
-                return <AdminFinancingHub />;
+                return <AdminFinancingHub allUsers={users} />;
             case 'cash':
                 return <AdminCashManagement />;
             case 'cms':
                 return <AdminCms />;
             case 'reporting':
-                return <AdminReportingHub />;
+                return <AdminReportingHub allTransactions={allTransactions} />;
             case 'services':
-                return <AdminFeatureManagement />;
+                return <AdminFeatureManagement allUsers={users} />;
             case 'roles':
                  return <AdminRoleManagement />;
             default:
@@ -105,5 +137,3 @@ export default function AdminDashboard({ onExit }: AdminDashboardProps) {
     </div>
   );
 }
-
-    

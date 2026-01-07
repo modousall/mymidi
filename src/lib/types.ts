@@ -1,10 +1,84 @@
 
 import { z } from 'zod';
 
+// --- Reusable Schemas ---
 const ScoreDetailSchema = z.object({
   value: z.number().describe('La valeur numérique du score, généralement sur 100.'),
   explanation: z.string().describe('Une brève explication sur la manière dont le score a été calculé.'),
 });
+
+// --- Entity Schemas ---
+
+export type Transaction = {
+  id: string;
+  type: "sent" | "received" | "tontine" | "card_recharge" | "versement";
+  counterparty: string;
+  reason: string;
+  date: string; // ISO string
+  amount: number;
+  status: "Terminé" | "En attente" | "Échoué" | "Retourné";
+  userId: string;
+};
+
+export type ManagedUser = {
+  id: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  alias: string; // phone number for login
+  phoneNumber: string;
+  merchantCode?: string; // public merchant code
+  balance: number;
+  avatar: string | null;
+  isSuspended: boolean;
+  role: string;
+};
+
+export type Vault = {
+  id: string;
+  name: string;
+  balance: number;
+  targetAmount: number | null;
+};
+
+export type Tontine = {
+  id: string;
+  name: string;
+  participants: string[]; // array of contact IDs
+  amount: number;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  progress: number;
+  isMyTurn: boolean;
+};
+
+export type CardDetails = {
+  number: string;
+  expiry: string;
+  cvv: string;
+  isFrozen: boolean;
+  balance: number;
+};
+
+export type CardTransaction = {
+  id: string;
+  type: 'debit' | 'credit';
+  amount: number;
+  merchant: string;
+  date: string;
+};
+
+export type ManagedUserWithTransactions = ManagedUser & {
+    transactions: Transaction[];
+}
+
+export type ManagedUserWithDetails = ManagedUserWithTransactions & {
+    vaults: Vault[];
+    tontines: Tontine[];
+    virtualCard: (CardDetails & { transactions: CardTransaction[] }) | null;
+}
+
+// --- AI Flow Schemas ---
 
 // Bill Payment Assistant
 export const BillPaymentAssistantInputSchema = z.object({

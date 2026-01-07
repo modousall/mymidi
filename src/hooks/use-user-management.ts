@@ -46,69 +46,33 @@ export type NewUserPayload = {
     role: 'support' | 'admin' | 'merchant';
 }
 
+// This hook is deprecated and will be removed.
+// User data should be fetched only within admin components where permissions are granted.
 export const useUserManagement = () => {
-  const firestore = useFirestore();
-  const auth = useAuth();
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+
+  useEffect(() => {
+    // console.warn("useUserManagement is deprecated and should not be used for fetching all users.");
+  }, []);
   
-  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: usersData, refresh: refreshUsers } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
-  
-  const users = useMemo(() => {
-    if (!usersData) return [];
-    return usersData.map(u => ({ ...u, name: `${u.firstName} ${u.lastName}` }));
-  }, [usersData]);
+  const refreshUsers = useCallback(() => {
+    // This function is now a no-op.
+  }, []);
 
-  // The concept of `usersWithTransactions` and `addTransactionForUser` becomes complex
-  // with Firestore as the source of truth, as we'd need to fetch subcollections for all users.
-  // This is inefficient. We'll rely on fetching transactions for a *specific* user when needed,
-  // e.g., in the AdminUserDetail view.
-  const usersWithTransactions: ManagedUserWithTransactions[] = [];
-  const addTransactionForUser = (userAlias: string, transaction: Omit<Transaction, 'id' | 'userId'>, balanceChange: 'credit' | 'debit') => {
-      console.warn("addTransactionForUser from useUserManagement is deprecated and should be handled via backend functions or direct Firestore calls within a user's context.");
-  };
-
-  const toggleUserSuspension = async (userId: string, suspend: boolean) => {
-    const userDocRef = doc(firestore, 'users', userId);
-    try {
-      await updateDoc(userDocRef, { isSuspended: suspend });
-      toast({ title: "Statut mis à jour", description: `L'utilisateur a été ${suspend ? 'suspendu' : 'réactivé'}.` });
-      refreshUsers();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    }
-  };
-
-  const updateUserRole = async (userId: string, newRole: string) => {
-    const userDocRef = doc(firestore, 'users', userId);
-    try {
-      await updateDoc(userDocRef, { role: newRole });
-      toast({ title: "Rôle mis à jour", description: `Le rôle a été changé en ${newRole}.` });
-      refreshUsers();
-    } catch (error: any) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    }
-  };
-
-  // Note: Changing PIN/password should ideally be done through Firebase Auth's own mechanisms,
-  // which would require the user's current password. This is a simplified admin reset.
-  const resetUserPin = async (userId: string, newPin: string) => {
-     toast({ title: "Non implémenté", description: "La réinitialisation du PIN admin doit être gérée côté serveur pour des raisons de sécurité.", variant: "destructive" });
-  };
-
-   const changeUserPin = (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
+  const changeUserPin = (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
        toast({ title: "Non implémenté", description: "La modification du PIN doit être gérée avec les fonctions Firebase Auth.", variant: "destructive" });
        return {success: false, message: "Non implémenté"};
    }
-
-
+  
   return { 
-      users: users as ManagedUser[], 
-      usersWithTransactions, // This is now an empty array and should be phased out
-      toggleUserSuspension, 
-      resetUserPin, 
-      updateUserRole, 
-      changeUserPin, 
+      users: users, 
       refreshUsers,
-      addTransactionForUser, // Deprecated
+      changeUserPin,
+      // The following are stubs and should not be relied upon
+      usersWithTransactions: [],
+      toggleUserSuspension: async () => {},
+      resetUserPin: async () => {},
+      updateUserRole: async () => {},
+      addTransactionForUser: () => {},
     };
 };

@@ -14,29 +14,31 @@ import { TransactionsProvider } from "@/hooks/use-transactions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
 import { formatCurrency } from "@/lib/utils";
-import { useUserManagement } from "@/hooks/use-user-management";
+import type { ManagedUser } from "@/lib/types";
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
     merchant: 'default',
 };
 
-export default function AdminMerchantManagement() {
-    const { users, refreshUsers } = useUserManagement();
+type AdminMerchantManagementProps = {
+    allUsers: ManagedUser[];
+    refreshUsers: () => void;
+}
 
+export default function AdminMerchantManagement({ allUsers, refreshUsers }: AdminMerchantManagementProps) {
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedUser, setSelectedUser] = useState<any | null>(null);
+    const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const filteredMerchants = useMemo(() => {
-        if (!users) return [];
-        return users.filter(user => 
+        return allUsers.filter(user => 
             user.role === 'merchant' &&
             (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (user.merchantCode && user.merchantCode.toLowerCase().includes(searchTerm.toLowerCase())))
         );
-    }, [users, searchTerm]);
+    }, [allUsers, searchTerm]);
     
     const handleUserSelect = (user: any) => {
         setSelectedUser(user);
@@ -94,7 +96,7 @@ export default function AdminMerchantManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {users.length === 0 ? (
+                    {allUsers.length === 0 ? (
                         <div className="flex justify-center items-center h-64">
                             <Loader2 className="animate-spin h-8 w-8" />
                         </div>
@@ -135,7 +137,7 @@ export default function AdminMerchantManagement() {
                             </TableBody>
                         </Table>
                     )}
-                    {!users.length && filteredMerchants.length === 0 && (
+                    {allUsers.length > 0 && filteredMerchants.length === 0 && (
                         <div className="text-center p-8">
                             <p>Aucun marchand ne correspond à votre recherche.</p>
                         </div>

@@ -10,6 +10,7 @@ import { useBnpl } from "@/hooks/use-bnpl";
 import { useIslamicFinancing } from "@/hooks/use-islamic-financing";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import type { Transaction } from '@/lib/types';
 
 type ReportView = 'hub' | 'activity' | 'financing';
 
@@ -100,13 +101,13 @@ const RegulatoryReports = () => {
     )
 }
 
-export default function AdminReportingHub() {
+export default function AdminReportingHub({ allTransactions }: { allTransactions: Transaction[] }) {
     const [view, setView] = useState<ReportView>('hub');
     
     const renderContent = () => {
         switch(view) {
             case 'activity':
-                return <AdminTransactionAnalysis />;
+                return <AdminTransactionAnalysis allTransactions={allTransactions} />;
             case 'financing':
                 return <FinancingReport />;
             default:

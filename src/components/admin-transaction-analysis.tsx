@@ -14,15 +14,9 @@ import { Download, Loader2 } from 'lucide-react';
 import type { ProductWithBalance } from './admin-product-management';
 import AdminProductDetail from './admin-product-detail';
 import { formatCurrency } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, collectionGroup, query } from 'firebase/firestore';
-import type { Transaction } from '@/hooks/use-transactions';
+import type { Transaction } from '@/lib/types';
 
-export default function AdminTransactionAnalysis() {
-  const firestore = useFirestore();
-  const transactionsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'transactions')), [firestore]);
-  const { data: allTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);
-
+export default function AdminTransactionAnalysis({ allTransactions }: { allTransactions: Transaction[] }) {
   const { billers, mobileMoneyOperators } = useProductManagement();
   const allProducts = useMemo(() => [...billers, ...mobileMoneyOperators], [billers, mobileMoneyOperators]);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithBalance | null>(null);
@@ -63,7 +57,8 @@ export default function AdminTransactionAnalysis() {
     }
 
     allTxs.forEach(tx => {
-        const txDate = parseISO(tx.date);
+        const dateString = (tx.date as any)?.toDate ? (tx.date as any).toDate().toISOString() : tx.date;
+        const txDate = parseISO(dateString);
         if (txDate > subDays(new Date(), 7)) {
             const formattedDate = format(txDate, 'd MMM', { locale: fr });
             if(dailyVolumes.has(formattedDate)) {
@@ -77,7 +72,11 @@ export default function AdminTransactionAnalysis() {
         .reverse();
 
     const recentTransactions = allTxs
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => {
+            const dateA = (a.date as any)?.toDate ? (a.date as any).toDate() : new Date(a.date);
+            const dateB = (b.date as any)?.toDate ? (b.date as any).toDate() : new Date(b.date);
+            return dateB.getTime() - dateA.getTime();
+        })
         .slice(0, 10);
         
     return {
@@ -96,7 +95,7 @@ export default function AdminTransactionAnalysis() {
   const handleExport = async () => {
     const dataToExport = allTransactions?.map(tx => ({
         ID: tx.id,
-        Date: tx.date,
+        Date: (tx.date as any)?.toDate ? (tx.date as any).toDate().toISOString() : tx.date,
         Type: tx.type,
         Interlocuteur: tx.counterparty,
         Raison: tx.reason,
@@ -135,7 +134,7 @@ export default function AdminTransactionAnalysis() {
         </CardHeader>
       </Card>
       
-      {isLoading ? (
+      {allTransactions.length === 0 ? (
         <div className="flex justify-center items-center h-32">
             <Loader2 className="animate-spin h-8 w-8" />
         </div>
@@ -246,7 +245,7 @@ export default function AdminTransactionAnalysis() {
                     <TableBody>
                     {recentTransactions.map(tx => (
                         <TableRow key={tx.id}>
-                            <TableCell>{format(new Date(tx.date), 'Pp', { locale: fr })}</TableCell>
+                            <TableCell>{format((tx.date as any)?.toDate ? (tx.date as any).toDate() : new Date(tx.date), 'Pp', { locale: fr })}</TableCell>
                             <TableCell>
                                 <Badge variant={tx.type === 'received' ? 'default' : 'secondary'} className={tx.type === 'received' ? 'bg-green-100 text-green-800' : tx.type === 'sent' ? 'bg-red-100 text-red-800' : ''}>
                                     {tx.type}
