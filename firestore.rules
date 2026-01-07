@@ -10,8 +10,9 @@
  * QR codes, which are secured by an ownership field within each document.
  *
  * Key Security Decisions:
- * - User Isolation: A user can only read or write data within their own /users/{userId} document tree.
- * - No User Enumeration: Listing documents in the top-level /users collection is explicitly disallowed
+ * - User Isolation: A user can only read or write data within their own /users/{userId} document tree, unless they are an admin.
+ * - Admin Access: Users with the 'admin' or 'superadmin' role are granted read-only access to all user data for management purposes.
+ * - No Public User Enumeration: Listing documents in the top-level /users collection is explicitly disallowed for non-admins
  *   to prevent scraping of user information.
  * - Public Readability: QR codes are publicly readable to allow scanning by anyone, but write
  *   operations are strictly limited to the user who owns the QR code.
@@ -44,6 +45,13 @@ service cloud.firestore {
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Returns true if the user has an admin-level role.
+     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'superadmin'];
     }
 
     /**
@@ -80,44 +88,43 @@ service cloud.firestore {
      * @description Controls access to user profile documents.
      * @path /users/{userId}
      * @allow (create) An authenticated user can create their own profile document.
-     * @deny (get) An authenticated user cannot read another user's profile.
-     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     * @allow (get, list) Admins can read any user profile and list all users.
+     * @deny (get, list) Regular users cannot read other user profiles or list all users.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration by non-admins.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id || isAdmin();
+      allow delete: if isExistingOwner(userId) || isAdmin();
 
       /**
        * @description Controls access to a user's transaction history.
        * @path /users/{userId}/transactions/{transactionId}
-       * @allow (get) A user can read a transaction from their own history.
+       * @allow (get, list) A user can read transactions from their own history. Admins can also read them.
        * @deny (list) A user cannot list transactions belonging to another user.
-       * @principle Enforces path-based ownership for a user's denormalized data.
+       * @principle Enforces path-based ownership for a user's denormalized data, with admin override.
        */
       match /transactions/{transactionId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && (request.resource.data.senderId == userId || request.resource.data.receiverId == userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId);
+        allow update: if isExistingOwner(userId) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
 
       /**
        * @description Controls access to a user's payment requests (both sent and received).
        * @path /users/{userId}/paymentRequests/{paymentRequestId}
        * @allow (create) A user can create a payment request in their own subcollection.
-       * @deny (get) A user cannot read a payment request from another user's private data.
-       * @principle Enforces path-based ownership for a user's denormalized data.
+       * @deny (get, list) A user cannot read a payment request from another user's private data unless they are an admin.
+       * @principle Enforces path-based ownership for a user's denormalized data, with admin override.
        */
       match /paymentRequests/{paymentRequestId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isOwner(userId) && (request.resource.data.requesterId == userId || request.resource.data.payerId == userId);
-        allow update: if isExistingOwner(userId);
-        allow delete: if isExistingOwner(userId);
+        allow update: if isExistingOwner(userId) || isAdmin();
+        allow delete: if isExistingOwner(userId) || isAdmin();
       }
     }
 
