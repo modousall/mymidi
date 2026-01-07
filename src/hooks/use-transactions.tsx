@@ -3,7 +3,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -37,7 +37,7 @@ type TransactionsProviderProps = {
 };
 
 export const TransactionsProvider = ({ children, forUserId }: TransactionsProviderProps) => {
-  const { user } = useAuth();
+  const { user } = useUser(); // Use the dedicated user hook
   const firestore = useFirestore();
 
   const targetUserId = forUserId || user?.uid;
@@ -69,7 +69,6 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
     }
     const transactionsColRef = collection(firestore, `users/${targetUserId}/transactions`);
     
-    // Non-blocking write with error handling
     addDoc(transactionsColRef, {
       ...transaction,
       userId: targetUserId,
@@ -91,7 +90,6 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
     if (!targetUserId || !firestore) return;
     const txDocRef = doc(firestore, `users/${targetUserId}/transactions`, id);
     
-    // Non-blocking write with error handling
     updateDoc(txDocRef, { status }).catch(error => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: txDocRef.path,

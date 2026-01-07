@@ -329,7 +329,10 @@ function AuthWrapper() {
     }
 
     const handleLogin = async (loginIdentifier: string, secret: string) => {
-        if (!firestore || !auth) return;
+        if (!firestore || !auth) {
+            toast({ title: "Erreur", description: "Services d'authentification non disponibles.", variant: "destructive" });
+            return;
+        }
     
         const password = secret.length === 4 ? `${secret}${secret}` : secret;
     
@@ -368,6 +371,7 @@ function AuthWrapper() {
             const querySnapshot = await getDocs(q);
     
             if (querySnapshot.empty) {
+                // No user found with this phone number
                 handleAuthError({ code: 'auth/user-not-found' }, loginIdentifier);
                 return;
             }
@@ -376,12 +380,19 @@ function AuthWrapper() {
             const userEmail = userDoc.email;
     
             if (userEmail) {
-                await signInWithEmailAndPassword(auth, userEmail, password);
-                // On success, the useUser hook will handle the rest
+                try {
+                    await signInWithEmailAndPassword(auth, userEmail, password);
+                    // On success, the useUser hook will handle the rest
+                } catch (error) {
+                    // This can happen if the password is wrong for the found user
+                    handleAuthError(error, loginIdentifier);
+                }
             } else {
-                handleAuthError({ code: 'auth/user-not-found' }, loginIdentifier);
+                // User doc exists but has no email, this is a data integrity issue.
+                handleAuthError({ code: 'auth/user-not-found', message: 'User profile incomplete.' }, loginIdentifier);
             }
         } catch (error) {
+            // This can happen if Firestore rules deny the query
             handleAuthError(error, loginIdentifier);
         }
     };

@@ -120,9 +120,8 @@ service cloud.firestore {
        */
       match /transactions/{transactionId} {
         allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && (request.resource.data.senderId == userId || request.resource.data.receiverId == userId);
-        allow update: if isExistingOwner(userId) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update, delete: if isOwner(userId) || isAdmin();
       }
 
       /**
