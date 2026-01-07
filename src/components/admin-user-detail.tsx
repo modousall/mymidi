@@ -110,11 +110,11 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
         
         // This is a sensitive operation. In a real app, this would be an admin SDK call on the backend.
         // We simulate the frontend part of this action.
-        console.log(`Simulating PIN reset for user ${user.id} with new PIN: ${newPin}`);
+        console.log(`SIMULATION: An admin function would be called to reset the password for user ${user.id} using the new PIN: ${newPin}.`);
         
         toast({
             title: "Réinitialisation du PIN (Simulation)",
-            description: `Le PIN pour ${user.firstName} a été mis à jour. L'utilisateur devra utiliser le nouveau PIN.`
+            description: `Le PIN pour ${user.firstName} a été mis à jour. L'utilisateur devra être informé du nouveau code pour se connecter.`
         });
         
         onClose();
@@ -443,7 +443,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
                                     <CardTitle>
                                         {activeServiceView === 'transactions' && "Historique des transactions"}
                                         {activeServiceView === 'ma-carte' && "Gestion de la Carte Virtuelle"}
-                                        {activeServiceiview === 'coffres' && "Gestion des Coffres"}
+                                        {activeServiceView === 'coffres' && "Gestion des Coffres"}
                                         {activeServiceView === 'tontine' && "Gestion des Tontines"}
                                         {activeServiceView === 'credit-details' && `Crédits Marchands pour ${userName}`}
                                     </CardTitle>
