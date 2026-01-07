@@ -25,10 +25,11 @@ import Dashboard from '@/components/dashboard';
 import { AvatarProvider } from '@/hooks/use-avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, Shield, Building } from 'lucide-react';
+import { User, Shield, Building, Loader2 } from 'lucide-react';
 import type { ManagedUser, Transaction } from '@/lib/types';
 import { UserManagementContext } from '@/hooks/use-user-management';
-
+import { useUser } from '@/firebase';
+import { AccountProvider, type Account } from '@/hooks/use-account';
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
   loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
@@ -38,7 +39,6 @@ const MerchantDashboard = dynamic(() => import('@/components/merchant-dashboard'
   loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
   ssr: false,
 });
-
 
 type UserInfo = {
   id: string;
@@ -100,14 +100,14 @@ const mockUsers: Record<string, UserInfo & Partial<ManagedUser>> = {
 const allMockUsers: ManagedUser[] = Object.values(mockUsers).map(u => u as ManagedUser);
 
 const allMockTransactions: Transaction[] = [
-    { id: 'tx1', userId: 'user-sim-001', type: 'received', counterparty: 'Lamine Diop', reason: 'Remboursement', amount: 25000, date: new Date().toISOString(), status: 'Terminé' },
-    { id: 'tx2', userId: 'user-sim-001', type: 'sent', counterparty: 'SENELEC', reason: 'Facture électricité', amount: 15000, date: new Date(Date.now() - 86400000).toISOString(), status: 'Terminé' },
-    { id: 'tx3', userId: 'merchant-sim-001', type: 'received', counterparty: 'Awa Diallo', reason: 'Achat en boutique', amount: 5000, date: new Date().toISOString(), status: 'Terminé' },
+    { id: 'tx1', accountId: 'acc_user_user-sim-001', type: 'received', counterparty: 'Lamine Diop', reason: 'Remboursement', amount: 25000, date: new Date().toISOString(), status: 'Terminé' },
+    { id: 'tx2', accountId: 'acc_user_user-sim-001', type: 'sent', counterparty: 'SENELEC', reason: 'Facture électricité', amount: 15000, date: new Date(Date.now() - 86400000).toISOString(), status: 'Terminé' },
+    { id: 'tx3', accountId: 'acc_merchant_merchant-sim-001', type: 'received', counterparty: 'Awa Diallo', reason: 'Achat en boutique', amount: 5000, date: new Date().toISOString(), status: 'Terminé' },
 ];
 
 
 // A single wrapper for all providers that depend on a user alias
-const AppProviders = ({ userId, alias, children }: { userId: string, alias: string, children: React.ReactNode }) => {
+const AppProviders = ({ account, children }: { account: Account, children: React.ReactNode }) => {
     
     const userManagementValue = {
         users: allMockUsers,
@@ -123,22 +123,23 @@ const AppProviders = ({ userId, alias, children }: { userId: string, alias: stri
 
     return (
         <UserManagementContext.Provider value={userManagementValue}>
-            <TransactionsProvider forUserId={userId}>
+          <AccountProvider account={account}>
+            <TransactionsProvider>
                 <TreasuryProvider>
                     <CmsProvider>
                         <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
                             <FeatureFlagProvider>
                                 <RoleProvider>
                                     <MonthlyBudgetProvider>
-                                        <BalanceProvider alias={alias}>
-                                            <BnplProvider alias={alias}>
-                                                <IslamicFinancingProvider alias={alias}>
-                                                    <AvatarProvider alias={alias}>
-                                                        <ContactsProvider alias={alias}>
-                                                            <VirtualCardProvider alias={alias}>
-                                                                <VaultsProvider alias={alias}>
-                                                                    <TontineProvider alias={alias}>
-                                                                        <RecurringPaymentsProvider alias={alias}>
+                                        <BalanceProvider alias={account.accountId}>
+                                            <BnplProvider alias={account.accountId}>
+                                                <IslamicFinancingProvider alias={account.accountId}>
+                                                    <AvatarProvider alias={account.accountId}>
+                                                        <ContactsProvider alias={account.accountId}>
+                                                            <VirtualCardProvider alias={account.accountId}>
+                                                                <VaultsProvider alias={account.accountId}>
+                                                                    <TontineProvider alias={account.accountId}>
+                                                                        <RecurringPaymentsProvider alias={account.accountId}>
                                                                             {children}
                                                                         </RecurringPaymentsProvider>
                                                                     </TontineProvider>
@@ -156,6 +157,7 @@ const AppProviders = ({ userId, alias, children }: { userId: string, alias: stri
                     </CmsProvider>
                 </TreasuryProvider>
             </TransactionsProvider>
+          </AccountProvider>
         </UserManagementContext.Provider>
     )
 }
@@ -197,6 +199,7 @@ function SimulatorSelector({ onSelectProfile }: { onSelectProfile: (profile: Use
 }
 
 function SimulatedApp() {
+    const { isUserLoading } = useUser();
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
     const { toast } = useToast();
     
@@ -211,29 +214,45 @@ function SimulatedApp() {
         setUserInfo(profile);
     }
     
+    if (isUserLoading) {
+        return (
+            <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Chargement de la session...</p>
+            </div>
+        );
+    }
+    
     const renderDashboard = () => {
         if (!userInfo) return null;
         
+        let account: Account;
         switch (userInfo.role) {
             case 'merchant':
-                return <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />;
+                account = { accountId: `acc_merchant_${userInfo.id}`, type: 'merchant' };
+                return (
+                    <AppProviders account={account}>
+                        <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />
+                    </AppProviders>
+                );
             case 'admin':
             case 'superadmin':
             case 'support':
-                return <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />;
+                 return <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />;
             case 'user':
             default:
-                return <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />;
+                 account = { accountId: `acc_user_${userInfo.id}`, type: 'user' };
+                 return (
+                     <AppProviders account={account}>
+                        <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />
+                    </AppProviders>
+                 )
         }
     };
   
     return (
         <main className="bg-background min-h-screen">
-            {userInfo ? (
-                <AppProviders userId={userInfo.id} alias={userInfo.alias}>
-                   {renderDashboard()}
-                </AppProviders>
-            ) : (
+            {userInfo ? renderDashboard() : (
                 <CmsProvider>
                     <SimulatorSelector onSelectProfile={handleSelectProfile} />
                 </CmsProvider>
