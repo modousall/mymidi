@@ -19,38 +19,6 @@ import { collection, collectionGroup, query } from 'firebase/firestore';
 import type { ManagedUser, Transaction } from '@/lib/types';
 
 
-const useAdminData = () => {
-    const firestore = useFirestore();
-
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'users');
-    }, [firestore]);
-    const { data: usersData, isLoading: isLoadingUsers, error: usersError } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
-    
-    const users = useMemo(() => {
-        if (!usersData) return [];
-        return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
-    }, [usersData]);
-
-    // This query is expensive and should only be run when needed, e.g., in the reporting section.
-    // For now, we will load it for the analysis tab but defer it for others.
-    const transactionsQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return query(collectionGroup(firestore, 'transactions'));
-    }, [firestore]);
-
-    const { data: allTransactions, isLoading: isLoadingTransactions, error: transactionsError } = useCollection<Transaction>(transactionsQuery);
-
-    return {
-        users: users || [],
-        allTransactions: allTransactions || [],
-        isLoading: isLoadingUsers || isLoadingTransactions,
-        error: usersError || transactionsError,
-    }
-}
-
-
 type AdminDashboardProps = {
     onExit: () => void;
 };
@@ -71,7 +39,39 @@ const adminFeatures: {id: AdminView, title: string, description: string, icon: J
 
 export default function AdminDashboard({ onExit }: AdminDashboardProps) {
     const [view, setView] = useState<AdminView>('dashboard');
-    const { users, allTransactions, isLoading, error } = useAdminData();
+    const firestore = useFirestore();
+
+    // Memoize queries to prevent re-fetching on every render
+    const usersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        // Only fetch users if we are in a view that needs them
+        if (['users', 'merchants', 'financing', 'services'].includes(view)) {
+            return collection(firestore, 'users');
+        }
+        return null;
+    }, [firestore, view]);
+
+    const transactionsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+         // Only fetch all transactions if we are in a view that needs them
+        if (['transactions', 'reporting'].includes(view)) {
+            return query(collectionGroup(firestore, 'transactions'));
+        }
+        return null;
+    }, [firestore, view]);
+
+
+    const { data: usersData, isLoading: isLoadingUsers, error: usersError } = useCollection<Omit<ManagedUser, 'id' | 'name'>>(usersQuery);
+    const { data: allTransactions, isLoading: isLoadingTransactions, error: transactionsError } = useCollection<Transaction>(transactionsQuery);
+
+    const users = useMemo(() => {
+        if (!usersData) return [];
+        return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
+    }, [usersData]);
+    
+    const isLoading = isLoadingUsers || isLoadingTransactions;
+    const error = usersError || transactionsError;
+
 
     // The refreshUsers function is simulated here as it depends on the useCollection hook's internal refresh logic which is not exposed.
     // In a real scenario with more complex state management (like Redux or Zustand), this would be handled differently.
@@ -110,7 +110,7 @@ export default function AdminDashboard({ onExit }: AdminDashboardProps) {
             case 'merchants':
                 return <AdminMerchantManagement allUsers={users} refreshUsers={refreshUsers} />;
             case 'transactions':
-                return <AdminTransactionAnalysis allTransactions={allTransactions} />;
+                return <AdminTransactionAnalysis allTransactions={allTransactions || []} />;
             case 'financing':
                 return <AdminFinancingHub allUsers={users} />;
             case 'cash':
@@ -118,7 +118,7 @@ export default function AdminDashboard({ onExit }: AdminDashboardProps) {
             case 'cms':
                 return <AdminCms />;
             case 'reporting':
-                return <AdminReportingHub allTransactions={allTransactions} />;
+                return <AdminReportingHub allTransactions={allTransactions || []} />;
             case 'services':
                 return <AdminFeatureManagement allUsers={users} />;
             case 'roles':
