@@ -154,7 +154,7 @@ const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: 
     return (
         <FeatureFlagProvider>
             <AvatarProvider alias={user.alias}>
-                <TransactionsProvider>
+                <TransactionsProvider forUserId={user.id}>
                     <BalanceProvider alias={user.alias}>
                         <BnplProvider alias={user.alias}>
                             <ContactsProvider alias={user.alias}>

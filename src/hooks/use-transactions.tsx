@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -32,45 +33,48 @@ export const TransactionsContext = createContext<TransactionsContextType | undef
 
 type TransactionsProviderProps = {
     children: ReactNode;
+    forUserId?: string; // Optional user ID for admin views
 };
 
-export const TransactionsProvider = ({ children }: TransactionsProviderProps) => {
+export const TransactionsProvider = ({ children, forUserId }: TransactionsProviderProps) => {
   const { user } = useAuth();
   const firestore = useFirestore();
 
+  const targetUserId = forUserId || user?.uid;
+
   const transactionsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!targetUserId || !firestore) return null;
     return query(
-        collection(firestore, `users/${user.uid}/transactions`), 
+        collection(firestore, `users/${targetUserId}/transactions`), 
         orderBy('date', 'desc')
     );
-  }, [user, firestore]);
+  }, [targetUserId, firestore]);
 
   const { data: transactions, isLoading } = useCollection<Omit<Transaction, 'id'| 'date' | 'userId'> & { date: any }>(transactionsQuery as any);
 
   const formattedTransactions = useMemo(() => {
-    if (!transactions) return [];
+    if (!transactions || !targetUserId) return [];
     return transactions.map(tx => ({
         ...tx,
         id: tx.id,
-        userId: user!.uid,
+        userId: targetUserId,
         // The date from Firestore is a Timestamp object, convert it to ISO string
         date: tx.date?.toDate ? tx.date.toDate().toISOString() : new Date().toISOString(),
     }));
-  }, [transactions, user]);
+  }, [transactions, targetUserId]);
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
-    if (!user || !firestore) {
+    if (!targetUserId || !firestore) {
         console.error("User not authenticated or Firestore not available.");
         return;
     }
-    const transactionsColRef = collection(firestore, `users/${user.uid}/transactions`);
+    const transactionsColRef = collection(firestore, `users/${targetUserId}/transactions`);
     
     // Non-blocking write with error handling
     addDoc(transactionsColRef, {
       ...transaction,
-      userId: user.uid,
+      userId: targetUserId,
       date: serverTimestamp(),
     }).catch(error => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -86,8 +90,8 @@ export const TransactionsProvider = ({ children }: TransactionsProviderProps) =>
   }
 
   const updateTransactionStatus = (id: string, status: Transaction['status']) => {
-    if (!user || !firestore) return;
-    const txDocRef = doc(firestore, `users/${user.uid}/transactions`, id);
+    if (!targetUserId || !firestore) return;
+    const txDocRef = doc(firestore, `users/${targetUserId}/transactions`, id);
     
     // Non-blocking write with error handling
     updateDoc(txDocRef, { status }).catch(error => {
