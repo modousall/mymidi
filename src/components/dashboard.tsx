@@ -175,6 +175,7 @@ export default function Dashboard({ alias, userInfo, onLogout }: DashboardProps)
             }
         }
         
+        // Default dashboard view
         return (
             <div className="space-y-8">
                 <DashboardHeader userInfo={userInfo} alias={alias} onProfileClick={() => onNavigateTo('profile')} />
