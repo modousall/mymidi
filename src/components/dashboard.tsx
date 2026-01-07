@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -20,6 +21,7 @@ import Paiement from './paiement';
 
 type UserInfo = {
     name: string;
+    firstName: string;
     email: string;
     role: 'user' | 'merchant' | 'admin' | 'superadmin' | 'support';
 };

@@ -46,6 +46,7 @@ type UserInfo = {
   id: string;
   firstName: string;
   lastName: string;
+  name: string;
   email: string;
   role: 'user' | 'merchant' | 'admin' | 'superadmin' | 'support' | 'agent';
   alias: string;
@@ -193,7 +194,7 @@ function AuthWrapper() {
         if (!user || !firestore) return null;
         return doc(firestore, 'users', user.uid);
     }, [user, firestore]);
-    const { data: userDoc, isLoading: isUserDocLoading } = useDoc<Omit<UserInfo, 'id' | 'alias'> & { role: UserInfo['role'], phoneNumber: string, isSuspended: boolean }>(userDocRef);
+    const { data: userDoc, isLoading: isUserDocLoading } = useDoc<Omit<UserInfo, 'id' | 'alias' | 'name'> & { role: UserInfo['role'], phoneNumber: string, isSuspended: boolean }>(userDocRef);
 
 
     useEffect(() => {
@@ -219,6 +220,7 @@ function AuthWrapper() {
                 id: user.uid,
                 firstName: userDoc.firstName,
                 lastName: userDoc.lastName,
+                name: `${userDoc.firstName} ${userDoc.lastName}`,
                 email: user.email || '',
                 role: userDoc.role,
                 alias: userDoc.phoneNumber,
@@ -241,7 +243,7 @@ function AuthWrapper() {
         setStep('kyc');
     };
 
-    const handleKycComplete = (info: Omit<UserInfo, 'id' | 'role' | 'alias' | 'firstName' | 'lastName'> & {name:string}) => {
+    const handleKycComplete = (info: Omit<UserInfo, 'id' | 'role' | 'alias' | 'firstName' | 'lastName' | 'name'> & {name:string}) => {
         const aliasForKyc = sessionStorage.getItem('midi_onboarding_alias');
         if (aliasForKyc) {
             const nameParts = info.name.split(' ');

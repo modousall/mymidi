@@ -19,6 +19,7 @@ import { isThisMonth, parseISO } from 'date-fns';
 
 type UserInfo = {
     name: string;
+    firstName: string;
     email: string;
 };
   
@@ -59,7 +60,7 @@ export default function DashboardHeader({ userInfo, onProfileClick }: HeaderProp
                  <button onClick={onProfileClick} className="flex items-center gap-3 text-left rounded-md p-2 -ml-2 hover:bg-secondary transition-colors">
                     <Avatar className="h-10 w-10">
                         <AvatarImage src={avatar ?? undefined} alt={userInfo.name} data-ai-hint="person face" />
-                        <AvatarFallback>{userInfo.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(userInfo.firstName || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                      <div>
                         <p className="font-bold text-lg text-foreground">{userInfo.name}</p>
