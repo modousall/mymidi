@@ -122,7 +122,7 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 // A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ userId, alias, children }: { userId: string, alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider>
+        <TransactionsProvider forUserId={userId}>
             <TreasuryProvider>
                 <CmsProvider>
                     <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
@@ -176,6 +176,7 @@ function AuthWrapper() {
     const { user, isUserLoading } = useUser();
     const [step, setStep] = useState<AppStep>('demo');
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
     const auth = useAuth();
     const firestore = useFirestore();
@@ -196,8 +197,9 @@ function AuthWrapper() {
 
 
     useEffect(() => {
-        if (isUserLoading || isUserDocLoading) {
-            setStep('demo'); // Show demo/loading state
+        // Don't do anything until both user and userDoc loading states are settled
+        if (isUserLoading || (user && isUserDocLoading)) {
+            setIsLoading(true);
             return;
         }
 
@@ -211,29 +213,33 @@ function AuthWrapper() {
                 auth.signOut();
                 setStep('login');
                 setUserInfo(null);
-                return;
+            } else {
+                setUserInfo({
+                    id: user.uid,
+                    firstName: userDoc.firstName,
+                    lastName: userDoc.lastName,
+                    name: `${userDoc.firstName} ${userDoc.lastName}`,
+                    email: user.email || '',
+                    role: userDoc.role,
+                    alias: userDoc.phoneNumber,
+                });
+                setStep(getDashboardStepForRole(userDoc.role));
             }
-
-            setUserInfo({
-                id: user.uid,
-                firstName: userDoc.firstName,
-                lastName: userDoc.lastName,
-                name: `${userDoc.firstName} ${userDoc.lastName}`,
-                email: user.email || '',
-                role: userDoc.role,
-                alias: userDoc.phoneNumber,
-            });
-            setStep(getDashboardStepForRole(userDoc.role));
-
-        } else if (user && !userDoc) {
-            // This case can happen briefly during registration.
-            // If it persists, it's an error. We don't sign out immediately anymore.
-            // We just wait for the userDoc to load.
         } else {
-            // No user is authenticated
+            // This now correctly handles both the "not logged in" case and the "logged in but profile not found" case.
             setStep('demo');
             setUserInfo(null);
+            if (user) {
+                // If user object exists but no userDoc, it's a dangling auth account.
+                // Could be a race condition on signup, or an error.
+                // We'll log them out to be safe and force a clean login/signup.
+                console.warn("User authenticated but no profile found in Firestore. Logging out.");
+                auth.signOut();
+            }
         }
+
+        // All checks are done, stop loading.
+        setIsLoading(false);
     }, [user, userDoc, isUserLoading, isUserDocLoading, auth, toast]);
 
     const handleAliasCreated = (newAlias: string) => {
@@ -381,11 +387,11 @@ function AuthWrapper() {
     };
   
     const renderContent = () => {
-        if (isUserLoading || (user && !userInfo)) {
+        if (isLoading) {
             return <div className="flex h-screen items-center justify-center">Chargement...</div>;
         }
 
-        if (userInfo && user) {
+        if (userInfo) {
             return (
                  <AppProviders userId={userInfo.id} alias={userInfo.alias}>
                     {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
