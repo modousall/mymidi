@@ -246,7 +246,9 @@ function SimulatedApp() {
                                     <BalanceProvider alias="admin_sim_balance">
                                         <BnplProvider alias="admin_sim_bnpl">
                                             <IslamicFinancingProvider alias="admin_sim_islamic">
-                                                <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
+                                                <TreasuryProvider>
+                                                    <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
+                                                </TreasuryProvider>
                                             </IslamicFinancingProvider>
                                         </BnplProvider>
                                     </BalanceProvider>
