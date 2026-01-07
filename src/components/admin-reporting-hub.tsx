@@ -4,12 +4,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, HandCoins, FileText, ArrowLeft, FileOutput, Download, AlertTriangle } from 'lucide-react';
+import { BarChart3, HandCoins, FileText, ArrowLeft, Download, AlertTriangle } from 'lucide-react';
 import AdminTransactionAnalysis from "./admin-transaction-analysis";
 import { useBnpl } from "@/hooks/use-bnpl";
 import { useIslamicFinancing } from "@/hooks/use-islamic-financing";
-import { useUserManagement } from "@/hooks/use-user-management";
-import { useProductManagement } from "@/hooks/use-product-management";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
