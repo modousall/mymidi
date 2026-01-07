@@ -23,7 +23,7 @@ export type Transaction = {
 type TransactionsContextType = {
   transactions: Transaction[];
   isLoading: boolean;
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'date'>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => void;
   findPendingTransactionByCode: (code: string) => Transaction | undefined;
   updateTransactionStatus: (id: string, status: Transaction['status']) => void;
 };
@@ -78,11 +78,16 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   }, [allLocalTransactions, targetUserId]);
 
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'date'>) => {
+  const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
+    if (!targetUserId) {
+        console.error("Cannot add transaction, no user ID available.");
+        return;
+    }
     const newTx: Transaction = {
         ...transaction,
         id: uuidv4(),
         date: new Date().toISOString(),
+        userId: targetUserId,
     };
 
     setAllLocalTransactions(prev => [newTx, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
