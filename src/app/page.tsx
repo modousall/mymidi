@@ -325,8 +325,6 @@ function AuthWrapper() {
     const handleLogin = (loginIdentifier: string, secret: string) => {
         if (!firestore || !auth) return;
         
-        const isEmail = loginIdentifier.includes('@');
-        
         const handleAuthError = (error: any) => {
             console.error("Firebase sign-in error:", error);
             if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
@@ -344,7 +342,7 @@ function AuthWrapper() {
             }
         };
     
-        if (!isEmail) {
+        if (!loginIdentifier.includes('@')) {
             toast({
                 title: "Connexion par e-mail requise",
                 description: "Veuillez vous connecter en utilisant votre adresse e-mail.",
