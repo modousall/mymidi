@@ -9,7 +9,7 @@
  * - PaymentSecurityAssistantOutput - The return type for the paymentSecurityAssistant function.
  */
 import { z } from 'zod';
-import { geminiModel } from '@/ai/gemini';
+import { aiGenerate } from '@/ai/ai-wrapper';
 
 const PaymentSecurityAssistantInputSchema = z.object({
   recipientAlias: z.string().describe('The alias of the payment recipient.'),
@@ -47,15 +47,6 @@ Si le destinataire est "Nouveau" ou n'est pas dans la liste de contacts, avertis
 La sortie doit être un objet JSON valide avec les clés "securitySuggestions" (un tableau de chaînes) et "isHighRisk" (un booléen).
 `;
   
-  const result = await geminiModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
-
-  const text = result.response.text();
-  const parsed = JSON.parse(text);
-
-  return PaymentSecurityAssistantOutputSchema.parse(parsed);
+  const result = await aiGenerate(prompt, true);
+  return PaymentSecurityAssistantOutputSchema.parse(result);
 }

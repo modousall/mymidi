@@ -6,7 +6,7 @@
  * - assessBnplApplication - A function that handles the BNPL assessment process.
  */
 
-import { geminiModel } from '@/ai/gemini';
+import { aiGenerate } from '@/ai/ai-wrapper';
 import { BnplAssessmentInputSchema, BnplAssessmentOutputSchema, type BnplAssessmentInput, type BnplAssessmentOutput } from '@/lib/types';
 
 
@@ -63,16 +63,6 @@ Taux de marge: ${input.marginRate}% par période
 **Répondez uniquement avec un objet JSON valide conforme au schéma.**
 `;
 
-  const result = await geminiModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: BnplAssessmentOutputSchema,
-    },
-  });
-
-  const text = result.response.text();
-  const parsed = JSON.parse(text);
-
-  return BnplAssessmentOutputSchema.parse(parsed);
+  const result = await aiGenerate(prompt, true);
+  return BnplAssessmentOutputSchema.parse(result);
 }

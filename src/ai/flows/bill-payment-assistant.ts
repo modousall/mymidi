@@ -7,10 +7,9 @@
  * - BillPaymentAssistantInput - The input type for the function.
  * - BillPaymentAssistantOutput - The return type for the function.
  */
-import { geminiModel } from '@/ai/gemini';
 import type { BillPaymentAssistantInput, BillPaymentAssistantOutput } from '@/components/bill-payment-form';
 import { BillPaymentAssistantOutputSchema } from '@/components/bill-payment-form';
-
+import { aiGenerate } from '@/ai/ai-wrapper';
 
 export async function billPaymentAssistant(input: BillPaymentAssistantInput): Promise<BillPaymentAssistantOutput> {
 
@@ -29,15 +28,6 @@ Vérifications à effectuer:
 Renvoyez un objet JSON avec 'isValid' (true si tout semble correct, false sinon) et une liste de 'suggestions'.
 `;
 
-  const result = await geminiModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
-
-  const text = result.response.text();
-  const parsed = JSON.parse(text);
-
-  return BillPaymentAssistantOutputSchema.parse(parsed);
+  const result = await aiGenerate(prompt, true);
+  return BillPaymentAssistantOutputSchema.parse(result);
 }

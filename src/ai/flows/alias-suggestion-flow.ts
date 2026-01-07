@@ -8,7 +8,7 @@
  * - AliasSuggestionOutput - The return type for the aliasSuggestion function.
  */
 import { z } from 'zod';
-import { geminiModel } from '@/ai/gemini';
+import { aiGenerate } from '@/ai/ai-wrapper';
 
 const AliasSuggestionInputSchema = z.object({
   name: z.string().optional().describe("The user's full name."),
@@ -43,15 +43,6 @@ Exemple de sortie:
 }
 `;
 
-  const result = await geminiModel.generateContent({
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-    },
-  });
-
-  const text = result.response.text();
-  const parsed = JSON.parse(text);
-
-  return AliasSuggestionOutputSchema.parse(parsed);
+  const result = await aiGenerate(prompt, true);
+  return AliasSuggestionOutputSchema.parse(result);
 }
