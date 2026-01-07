@@ -1,3 +1,4 @@
+
 'use server';
 
 import { 
@@ -41,7 +42,7 @@ export type SignUpDetails = {
  */
 const generatePasswordFromPin = (pin: string): string => {
     // This is NOT secure for production. It's a deterministic placeholder.
-    return `${pin}${pin.split('').reverse().join('')}${pin}`;
+    return `${pin}${pin}`;
 };
 
 function getFirebaseServices(): { app: FirebaseApp; auth: Auth; firestore: Firestore } {
