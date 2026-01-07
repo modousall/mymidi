@@ -40,12 +40,17 @@ const adminFeatures: {id: AdminView, title: string, description: string, icon: J
 export default function AdminDashboard({ onExit, allUsers, allTransactions }: AdminDashboardProps) {
     const [view, setView] = useState<AdminView>('dashboard');
 
+    const getTransactionsForUser = (user: ManagedUser) => {
+        const accountId = user.role === 'merchant' ? `acc_merchant_${user.id}` : `acc_user_${user.id}`;
+        return allTransactions.filter(tx => tx.accountId === accountId);
+    }
+
     const renderContent = () => {
         switch(view) {
             case 'users':
-                return <AdminUserManagement allUsers={allUsers} refreshUsers={() => {}} />;
+                return <AdminUserManagement allUsers={allUsers} refreshUsers={() => {}} allTransactions={allTransactions} />;
             case 'merchants':
-                return <AdminMerchantManagement allUsers={allUsers} refreshUsers={() => {}} />;
+                return <AdminMerchantManagement allUsers={allUsers} refreshUsers={() => {}} allTransactions={allTransactions} />;
             case 'transactions':
                 return <AdminTransactionAnalysis allTransactions={allTransactions} />;
             case 'financing':

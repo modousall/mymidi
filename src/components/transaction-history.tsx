@@ -33,6 +33,7 @@ import { Skeleton } from './ui/skeleton';
 type TransactionHistoryProps = {
   showAll: boolean;
   onShowAll: (show: boolean) => void;
+  transactions?: Transaction[];
 };
 
 const formatDate = (dateString: string) => {
@@ -253,10 +254,16 @@ const LoadingSkeleton = () => (
 );
 
 
-export default function TransactionHistory({ showAll, onShowAll }: TransactionHistoryProps) {
-    const { recentTransactions, historyTransactions, loading } = useTransactions();
+export default function TransactionHistory({ showAll, onShowAll, transactions: transactionsFromProp }: TransactionHistoryProps) {
+    const transactionsHook = useTransactions();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
+
+    const { recentTransactions, historyTransactions, loading } = transactionsFromProp ? {
+        recentTransactions: transactionsFromProp.slice(0, 5),
+        historyTransactions: transactionsFromProp,
+        loading: false
+    } : transactionsHook;
 
     const transactionsToFilter = showAll ? historyTransactions : recentTransactions;
 

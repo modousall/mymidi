@@ -30,7 +30,6 @@ import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
 import { updateDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/hooks/use-transactions';
-import { TransactionsProvider } from '@/hooks/use-transactions';
 
 
 // Import product components
@@ -144,7 +143,6 @@ const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: 
     return (
         <FeatureFlagProvider>
             <AvatarProvider alias={user.alias}>
-                <TransactionsProvider forUserId={user.id}>
                     <BalanceProvider alias={user.alias}>
                         <BnplProvider alias={user.alias}>
                             <ContactsProvider alias={user.alias}>
@@ -158,7 +156,6 @@ const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: 
                             </ContactsProvider>
                         </BnplProvider>
                     </BalanceProvider>
-                </TransactionsProvider>
             </AvatarProvider>
         </FeatureFlagProvider>
     )
@@ -233,7 +230,7 @@ const MerchantCreditDetails = ({ requests }: { requests: BnplRequest[] }) => (
 )
 
 
-export default function AdminUserDetail({ user, onBack, onUpdate }: { user: ManagedUser, onBack: () => void, onUpdate: (id: string, data: Partial<ManagedUser>) => void }) {
+export default function AdminUserDetail({ user, onBack, onUpdate, transactions }: { user: ManagedUser, onBack: () => void, onUpdate: (id: string, data: Partial<ManagedUser>) => void, transactions: Transaction[] }) {
     const { toast } = useToast();
     const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
     const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
@@ -278,7 +275,7 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
     const renderServiceView = () => {
         switch (activeServiceView) {
             case 'transactions':
-                return <TransactionHistory showAll={true} onShowAll={() => {}} />;
+                return <TransactionHistory showAll={true} onShowAll={() => {}} transactions={transactions} />;
             case 'ma-carte':
                 return <VirtualCard onBack={() => setActiveServiceView('transactions')} cardHolderName={`${user.firstName} ${user.lastName}`} />;
             case 'coffres':
@@ -289,9 +286,9 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: Mana
                  if(user.role === 'merchant') {
                     return <MerchantCreditDetails requests={merchantCredits} />;
                 }
-                return <TransactionHistory showAll={true} onShowAll={() => {}} />; // Fallback for non-merchants
+                return <TransactionHistory showAll={true} onShowAll={() => {}} transactions={transactions} />; // Fallback for non-merchants
             default:
-                return <TransactionHistory showAll={true} onShowAll={() => {}} />;
+                return <TransactionHistory showAll={true} onShowAll={() => {}} transactions={transactions} />;
         }
     }
 

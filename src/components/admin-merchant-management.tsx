@@ -10,11 +10,10 @@ import { Search, PlusCircle, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "./ui/input";
 import AdminUserDetail from "./admin-user-detail";
-import { TransactionsProvider } from "@/hooks/use-transactions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
 import { formatCurrency } from "@/lib/utils";
-import type { ManagedUser } from "@/lib/types";
+import type { ManagedUser, Transaction } from "@/lib/types";
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
     merchant: 'default',
@@ -23,9 +22,10 @@ const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 
 type AdminMerchantManagementProps = {
     allUsers: ManagedUser[];
     refreshUsers: () => void;
+    allTransactions: Transaction[];
 }
 
-export default function AdminMerchantManagement({ allUsers, refreshUsers }: AdminMerchantManagementProps) {
+export default function AdminMerchantManagement({ allUsers, refreshUsers, allTransactions }: AdminMerchantManagementProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -55,11 +55,9 @@ export default function AdminMerchantManagement({ allUsers, refreshUsers }: Admi
     }
 
     if (selectedUser) {
-        return (
-            <TransactionsProvider alias={selectedUser.alias}>
-                <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
-            </TransactionsProvider>
-        )
+        const accountId = `acc_merchant_${selectedUser.id}`;
+        const userTransactions = allTransactions.filter(tx => tx.accountId === accountId);
+        return <AdminUserDetail user={selectedUser} transactions={userTransactions} onBack={handleBackToList} onUpdate={handleBackToList} />
     }
     
     return (

@@ -14,7 +14,7 @@ import AdminUserDetail from "./admin-user-detail";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
 import { formatCurrency } from "@/lib/utils";
-import type { ManagedUser } from "@/lib/types";
+import type { ManagedUser, Transaction } from "@/lib/types";
 
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
@@ -33,9 +33,10 @@ const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 
 type AdminUserManagementProps = {
     allUsers: ManagedUser[];
     refreshUsers: () => void;
+    allTransactions: Transaction[];
 }
 
-export default function AdminUserManagement({ allUsers, refreshUsers }: AdminUserManagementProps) {
+export default function AdminUserManagement({ allUsers, refreshUsers, allTransactions }: AdminUserManagementProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -63,7 +64,9 @@ export default function AdminUserManagement({ allUsers, refreshUsers }: AdminUse
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
+        const accountId = `acc_user_${selectedUser.id}`;
+        const userTransactions = allTransactions.filter(tx => tx.accountId === accountId);
+        return <AdminUserDetail user={selectedUser} transactions={userTransactions} onBack={handleBackToList} onUpdate={handleBackToList} />
     }
 
     return (
