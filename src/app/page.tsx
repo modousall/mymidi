@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,7 +30,8 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseClientProvider, useAuth } from '@/firebase';
+import { FirebaseClientProvider, useUser, useAuth } from '@/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
   loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
@@ -84,41 +86,39 @@ const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => 
 // A single wrapper for all providers
 const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
     return (
-        <FirebaseClientProvider>
-            <TransactionsProvider alias={alias}>
-                <TreasuryProvider>
-                    <CmsProvider>
-                        <ProductProviderWrapper>
-                            <FeatureFlagProvider>
-                                <RoleProvider>
-                                    <MonthlyBudgetProvider>
-                                        <BalanceProvider alias={alias}>
-                                            <BnplProvider alias={alias}>
-                                                <IslamicFinancingProvider alias={alias}>
-                                                    <AvatarProvider alias={alias}>
-                                                        <ContactsProvider alias={alias}>
-                                                            <VirtualCardProvider alias={alias}>
-                                                                <VaultsProvider alias={alias}>
-                                                                    <TontineProvider alias={alias}>
-                                                                        <RecurringPaymentsProvider alias={alias}>
-                                                                            {children}
-                                                                        </RecurringPaymentsProvider>
-                                                                    </TontineProvider>
-                                                                </VaultsProvider>
-                                                            </VirtualCardProvider>
-                                                        </ContactsProvider>
-                                                    </AvatarProvider>
-                                                </IslamicFinancingProvider>
-                                            </BnplProvider>
-                                        </BalanceProvider>
-                                    </MonthlyBudgetProvider>
-                                </RoleProvider>
-                            </FeatureFlagProvider>
-                        </ProductProviderWrapper>
-                    </CmsProvider>
-                </TreasuryProvider>
-            </TransactionsProvider>
-        </FirebaseClientProvider>
+        <TransactionsProvider alias={alias}>
+            <TreasuryProvider>
+                <CmsProvider>
+                    <ProductProviderWrapper>
+                        <FeatureFlagProvider>
+                            <RoleProvider>
+                                <MonthlyBudgetProvider>
+                                    <BalanceProvider alias={alias}>
+                                        <BnplProvider alias={alias}>
+                                            <IslamicFinancingProvider alias={alias}>
+                                                <AvatarProvider alias={alias}>
+                                                    <ContactsProvider alias={alias}>
+                                                        <VirtualCardProvider alias={alias}>
+                                                            <VaultsProvider alias={alias}>
+                                                                <TontineProvider alias={alias}>
+                                                                    <RecurringPaymentsProvider alias={alias}>
+                                                                        {children}
+                                                                    </RecurringPaymentsProvider>
+                                                                </TontineProvider>
+                                                            </VaultsProvider>
+                                                        </VirtualCardProvider>
+                                                    </ContactsProvider>
+                                                </AvatarProvider>
+                                            </IslamicFinancingProvider>
+                                        </BnplProvider>
+                                    </BalanceProvider>
+                                </MonthlyBudgetProvider>
+                            </RoleProvider>
+                        </FeatureFlagProvider>
+                    </ProductProviderWrapper>
+                </CmsProvider>
+            </TreasuryProvider>
+        </TransactionsProvider>
     )
 }
 
@@ -136,218 +136,212 @@ const getDashboardStepForRole = (role: UserInfo['role']): AppStep => {
     }
 };
 
-export default function AuthenticationGate() {
-  const [step, setStep] = useState<AppStep>('demo');
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [alias, setAlias] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false);
-  const { toast } = useToast();
-  const router = useRouter();
+function AuthWrapper() {
+    const { user, isUserLoading } = useUser();
+    const [step, setStep] = useState<AppStep>('demo');
+    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+    const [alias, setAlias] = useState<string | null>(null);
+    const { toast } = useToast();
+    const auth = useAuth();
 
-  useEffect(() => {
-    setIsClient(true);
-    
-    ensureSuperAdminExists();
+    useEffect(() => {
+        ensureSuperAdminExists();
 
-    const lastAlias = localStorage.getItem('midi_last_alias');
-    if (lastAlias) {
-        const userDataString = localStorage.getItem(`midi_user_${lastAlias}`);
-        if(userDataString) {
-            const userData = JSON.parse(userDataString);
-            if(userData.isSuspended){
-                toast({
-                    title: "Compte Suspendu",
-                    description: "Votre compte a été suspendu. Veuillez contacter le support.",
+        if (isUserLoading) return; // Wait until user status is resolved
+
+        if (user) {
+            const userAlias = user.phoneNumber || user.email; // Use phone number or email as alias
+            if(userAlias) {
+                 const userDataString = localStorage.getItem(`midi_user_${userAlias}`);
+                 if (userDataString) {
+                    const userData = JSON.parse(userDataString);
+                     if(userData.isSuspended){
+                        toast({
+                            title: "Compte Suspendu",
+                            description: "Votre compte a été suspendu. Veuillez contacter le support.",
+                            variant: "destructive",
+                        });
+                        auth.signOut(); // Sign out suspended user
+                        setStep('demo');
+                        return;
+                    }
+                    const userRole = userData.role || 'user';
+                    setUserInfo({ name: userData.name, email: userData.email, role: userRole });
+                    setAlias(userAlias);
+                    setStep(getDashboardStepForRole(userRole));
+                 } else {
+                    // This case can happen if user exists in Firebase Auth but not in our localStorage user management system.
+                    // For this prototype, we'll log out the user.
+                    auth.signOut();
+                    setStep('demo');
+                 }
+            } else {
+                 auth.signOut();
+                 setStep('demo');
+            }
+        } else {
+            // No user is signed in
+            setStep('demo');
+            setUserInfo(null);
+            setAlias(null);
+        }
+    }, [user, isUserLoading, auth, toast]);
+
+    const handleAliasCreated = (newAlias: string) => {
+        localStorage.setItem('midi_active_alias_creation', newAlias);
+        setStep('kyc');
+    };
+
+    const handleKycComplete = (info: Omit<UserInfo, 'role'>) => {
+        const aliasForKyc = localStorage.getItem('midi_active_alias_creation');
+        if (aliasForKyc) {
+            localStorage.setItem(`midi_temp_user_info`, JSON.stringify({
+                alias: aliasForKyc,
+                name: info.name,
+                email: info.email,
+            }));
+            setStep('pin_creation');
+        } else {
+            toast({ title: "Erreur critique", description: "L'alias de l'utilisateur est manquant.", variant: "destructive" });
+            setStep('demo');
+        }
+    };
+  
+    const handlePinCreated = async (pin: string) => {
+        const tempUserInfoString = localStorage.getItem('midi_temp_user_info');
+        
+        if (tempUserInfoString && auth) {
+            const tempInfo = JSON.parse(tempUserInfoString);
+            const aliasForPin = tempInfo.alias;
+            const email = tempInfo.email;
+            
+            // For this demo, PIN will be used as the password. In a real app, use a more secure password.
+            const password = `${pin}${pin}`;
+
+            try {
+                // Create user in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+                // If successful, create user in our localStorage system
+                const newUser = {
+                    name: tempInfo.name,
+                    email: email,
+                    pincode: pin, // Storing for simulated login, not for Firebase Auth
+                    role: 'user',
+                };
+                localStorage.setItem(`midi_user_${aliasForPin}`, JSON.stringify(newUser));
+                localStorage.setItem(`midi_onboarded_${aliasForPin}`, 'true');
+                localStorage.setItem(`midi_balance_${aliasForPin}`, '0');
+
+                // Clean up
+                localStorage.removeItem('midi_active_alias_creation');
+                localStorage.removeItem('midi_temp_user_info');
+                
+                // The useEffect will handle setting the user state from the new auth state
+                toast({ title: "Compte créé avec succès !", description: "Bienvenue sur Midi." });
+
+            } catch(error: any) {
+                 toast({
+                    title: "Erreur d'inscription",
+                    description: error.message || "Impossible de créer le compte Firebase. L'email est peut-être déjà utilisé.",
                     variant: "destructive",
                 });
-                localStorage.removeItem('midi_last_alias');
-                setStep('demo');
+                setStep('alias'); // Go back to alias creation
+            }
+        } else {
+            toast({ title: "Erreur critique d'inscription", variant: "destructive" });
+            setStep('demo');
+        }
+    }
+  
+    const handleOnboardingStart = () => setStep('permissions');
+    const handlePermissionsGranted = () => setStep('alias');
+    const handleLoginStart = () => setStep('login');
+  
+    const handleLogout = () => {
+        auth.signOut();
+        // The useEffect hook will handle resetting state
+        toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
+    }
+
+    const handleLogin = (loginAlias: string, pin: string) => {
+        const userDataString = localStorage.getItem(`midi_user_${loginAlias}`);
+      
+        if (userDataString && auth) {
+            const userData = JSON.parse(userDataString);
+
+            if (userData.isSuspended) {
+                toast({ title: "Compte Suspendu", variant: "destructive" });
                 return;
             }
-            const userRole = userData.role || 'user';
-            setUserInfo({ name: userData.name, email: userData.email, role: userRole });
-            setAlias(lastAlias);
-            setStep(getDashboardStepForRole(userRole));
+
+            if (userData.pincode !== pin) {
+                toast({ title: "Code PIN incorrect", variant: "destructive" });
+                return;
+            }
+
+            const password = `${pin}${pin}`;
             
+            signInWithEmailAndPassword(auth, userData.email, password)
+                .then((userCredential) => {
+                    // Login successful, the useEffect hook will handle the rest.
+                    toast({ title: `Bienvenue, ${userData.name} !` });
+                })
+                .catch((error) => {
+                    toast({
+                        title: "Erreur de Connexion Firebase",
+                        description: "Impossible de se connecter. Veuillez réessayer.",
+                        variant: "destructive",
+                    });
+                });
         } else {
-             // Data mismatch, clear and go to demo
-             localStorage.removeItem('midi_last_alias');
-             setStep('demo');
+            toast({ title: "Alias non trouvé", variant: "destructive" });
         }
     }
-  }, [toast]);
-
-  const handleAliasCreated = (newAlias: string) => {
-    localStorage.setItem('midi_active_alias_creation', newAlias);
-    setStep('kyc');
-  };
-
-  const handleKycComplete = (info: Omit<UserInfo, 'role'>) => {
-    const aliasForKyc = localStorage.getItem('midi_active_alias_creation');
-    if (aliasForKyc) {
-        // We only store the basic info temporarily.
-        // Full user object with PIN is created at the final step.
-        localStorage.setItem(`midi_temp_user_info`, JSON.stringify({
-            alias: aliasForKyc,
-            name: info.name,
-            email: info.email,
-        }));
-        setStep('pin_creation');
-    } else {
-        toast({
-            title: "Erreur critique",
-            description: "L'alias de l'utilisateur est manquant. Retour à l'accueil.",
-            variant: "destructive",
-        });
-        setStep('demo');
-    }
-  };
   
-  const handlePinCreated = (pin: string) => {
-    const tempUserInfoString = localStorage.getItem('midi_temp_user_info');
-    
-    if (tempUserInfoString) {
-        const tempInfo = JSON.parse(tempUserInfoString);
-        const aliasForPin = tempInfo.alias;
-
-        const newUser = {
-            name: tempInfo.name,
-            email: tempInfo.email,
-            pincode: pin,
-            role: 'user',
-        };
-
-        localStorage.setItem(`midi_user_${aliasForPin}`, JSON.stringify(newUser));
-        localStorage.setItem(`midi_onboarded_${aliasForPin}`, 'true');
-        localStorage.setItem(`midi_balance_${aliasForPin}`, '0');
-        localStorage.setItem('midi_last_alias', aliasForPin);
-
-        // Clean up temporary keys
-        localStorage.removeItem('midi_active_alias_creation');
-        localStorage.removeItem('midi_temp_user_info');
-        
-        // Set the state for the new logged-in user
-        setAlias(aliasForPin);
-        setUserInfo({ name: newUser.name, email: newUser.email, role: 'user' });
-        setStep('dashboard');
-
-        toast({
-            title: "Compte créé avec succès !",
-            description: "Bienvenue sur Midi. Votre compte est maintenant prêt.",
-        });
-
-    } else {
-         toast({
-            title: "Erreur critique d'inscription",
-            description: "Les informations de l'utilisateur sont introuvables. Veuillez réessayer.",
-            variant: "destructive",
-        });
-        setStep('demo');
-    }
-  }
-  
-  const handleOnboardingStart = () => {
-    setStep('permissions');
-  };
-
-  const handlePermissionsGranted = () => {
-    setStep('alias');
-  };
-
-  const handleLoginStart = () => {
-    setStep('login');
-  };
-  
-  const handleLogout = () => {
-    localStorage.removeItem('midi_last_alias');
-    setAlias(null);
-    setUserInfo(null);
-    setStep('demo');
-    toast({
-        title: "Déconnexion",
-        description: "Vous avez été déconnecté avec succès.",
-    });
-  }
-
-  const handleLogin = (loginAlias: string, pin: string) => {
-    const userDataString = localStorage.getItem(`midi_user_${loginAlias}`);
-  
-    if (userDataString) {
-        const userData = JSON.parse(userDataString);
-
-        if (userData.isSuspended) {
-            toast({
-                title: "Compte Suspendu",
-                description: "Votre compte a été suspendu par un administrateur. Veuillez contacter le support.",
-                variant: "destructive",
-            });
-            return;
+    const renderContent = () => {
+        if (isUserLoading) {
+            return <div className="flex h-screen items-center justify-center">Chargement...</div>;
         }
 
-        if (userData.pincode === pin) {
-            localStorage.setItem('midi_last_alias', loginAlias);
-            const userRole = userData.role || 'user';
-            setUserInfo({ name: userData.name, email: userData.email, role: userRole });
-            setAlias(loginAlias);
-            toast({
-              title: `Bienvenue, ${userData.name} !`,
-              description: "Connexion réussie.",
-            });
-            setStep(getDashboardStepForRole(userRole));
-        } else {
-             toast({
-                title: "Code PIN incorrect",
-                description: "Le code PIN que vous avez saisi est incorrect. Veuillez réessayer.",
-                variant: "destructive",
-            });
+        if (alias && userInfo && user) {
+            return (
+                <AppProviders alias={alias}>
+                    {step === 'dashboard' && <Dashboard alias={alias} userInfo={userInfo} onLogout={handleLogout} />}
+                    {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={alias} onLogout={handleLogout} />}
+                    {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
+                </AppProviders>
+            )
         }
-    } else {
-      toast({
-        title: "Alias non trouvé",
-        description: "Cet alias n'existe pas. Veuillez vérifier l'alias ou créer un nouveau compte.",
-        variant: "destructive",
-      });
-    }
-  }
-  
-  const renderContent = () => {
-    if (alias && userInfo) {
-        // If a user is logged in, wrap the appropriate dashboard with all necessary providers
-        return (
-            <AppProviders alias={alias}>
-                {step === 'dashboard' && <Dashboard alias={alias} userInfo={userInfo} onLogout={handleLogout} />}
-                {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={alias} onLogout={handleLogout} />}
-                {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
-            </AppProviders>
-        )
-    }
 
-    // If no user is logged in, show the public onboarding/login flow
-    switch (step) {
-      case 'demo':
-        return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
-      case 'permissions':
-        return <PermissionsRequest onPermissionsGranted={handlePermissionsGranted} />;
-      case 'alias':
-        return <AliasCreation onAliasCreated={handleAliasCreated} />;
-      case 'kyc':
-        return <KYCForm onKycComplete={handleKycComplete} />;
-      case 'pin_creation':
-        return <PinCreation onPinCreated={handlePinCreated} />;
-      case 'login':
-        return <LoginForm onLogin={handleLogin} onBack={() => setStep('demo')} />;
-      default:
-         // Fallback for any state inconsistency
-        localStorage.removeItem('midi_last_alias');
-        localStorage.removeItem('midi_active_alias_creation');
-        localStorage.removeItem('midi_temp_user_info');
-        return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
-    }
-  };
+        // Public onboarding/login flow
+        switch (step) {
+            case 'demo':
+                return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
+            case 'permissions':
+                return <PermissionsRequest onPermissionsGranted={handlePermissionsGranted} />;
+            case 'alias':
+                return <AliasCreation onAliasCreated={handleAliasCreated} />;
+            case 'kyc':
+                return <KYCForm onKycComplete={handleKycComplete} />;
+            case 'pin_creation':
+                return <PinCreation onPinCreated={handlePinCreated} />;
+            case 'login':
+                return <LoginForm onLogin={handleLogin} onBack={() => setStep('demo')} />;
+            default:
+                return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
+        }
+    };
   
-  if (!isClient) {
-    return <div className="flex h-screen items-center justify-center">Chargement...</div>;
-  }
-
-  return <main className="bg-background min-h-screen">{renderContent()}</main>;
+    return <main className="bg-background min-h-screen">{renderContent()}</main>;
 }
+
+export default function AuthenticationGate() {
+    return (
+        <FirebaseClientProvider>
+            <AuthWrapper />
+        </FirebaseClientProvider>
+    );
+}
+
+    
