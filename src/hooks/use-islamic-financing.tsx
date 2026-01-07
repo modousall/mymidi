@@ -128,9 +128,11 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
         return;
       }
       
+      const wasInReview = requestToUpdate.status === 'review';
+
       setAllRequests(prev => prev.map(req => req.id === id ? { ...req, status } : req));
       
-       if (status === 'approved') {
+       if (wasInReview && status === 'approved') {
           try {
             const userToCredit = users.find(u => u.alias === requestToUpdate.alias);
              if (!userToCredit) {
@@ -167,7 +169,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
               setAllRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'review' } : req));
           }
       } else {
-         toast({ title: `Demande rejetée`, description: `La demande de financement de ${requestToUpdate.alias} a été mise à jour.`})
+         toast({ title: `Demande ${status === 'approved' ? 'approuvée' : 'rejetée'}`, description: `La demande de financement de ${requestToUpdate.alias} a été mise à jour.`})
       }
   }
   
