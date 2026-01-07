@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -104,8 +103,8 @@ export default function AdminTransactionAnalysis() {
     }));
     
     const Papa = (await import('papaparse')).default;
-    const csv = Papa.unparse(dataToExport);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const csv = Papa.unparse(dataToExport, { header: true });
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -266,4 +265,3 @@ export default function AdminTransactionAnalysis() {
       </Card>
     </div>
   );
-}

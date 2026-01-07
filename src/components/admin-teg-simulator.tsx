@@ -189,8 +189,8 @@ export default function AdminTegSimulator() {
             "Solde Restant": row.balance.toFixed(2)
         }));
 
-        const csv = Papa.unparse(dataToExport);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const csv = Papa.unparse(dataToExport, { header: true });
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);

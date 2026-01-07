@@ -279,4 +279,3 @@ export default function AdminCashManagement() {
 
         </div>
     );
-}
