@@ -29,12 +29,15 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
+import type { Transaction } from '@/hooks/use-transactions';
+
 
 // Import product components
 import Vaults from './vaults';
 import Tontine from './tontine';
 import VirtualCard from './virtual-card';
-// Note: useUserManagement is removed, data needs to come from a new source e.g. a global user provider or API call
 
 const RoleManagementDialog = ({ user, onClose }: { user: any, onClose: () => void }) => {
     const [selectedRole, setSelectedRole] = useState(user.role);
@@ -42,7 +45,6 @@ const RoleManagementDialog = ({ user, onClose }: { user: any, onClose: () => voi
 
     const handleSaveRole = () => {
         if (selectedRole) {
-            // updateUserRole(user.alias, selectedRole); // This needs to be reimplemented
              console.log(`Updating role for ${user.alias} to ${selectedRole}`);
             toast({
                 title: "Rôle mis à jour",
@@ -97,7 +99,6 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
             });
             return;
         }
-        // resetUserPin(user.alias, newPin); // This needs to be reimplemented
         console.log(`Resetting PIN for ${user.alias}`);
         toast({
             title: "Code PIN réinitialisé",
@@ -236,17 +237,28 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
     const [activeServiceView, setActiveServiceView] = useState<ActiveServiceView>('transactions');
     const transactionHistoryRef = useRef<HTMLDivElement>(null);
     
+    const firestore = useFirestore();
+
+    const transactionsCollectionRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return collection(firestore, `users/${user.id}/transactions`);
+    }, [firestore, user]);
+    
+    const { data: userTransactions } = useCollection<Transaction>(transactionsCollectionRef);
+
     const todaysRevenue = useMemo(() => {
+        if (!userTransactions) return 0;
         const today = new Date().toISOString().split('T')[0];
-        return user.transactions
-            .filter((tx: any) => tx.type === 'received' && tx.date.startsWith(today))
+        return userTransactions
+            .filter((tx: any) => tx.type === 'received' && tx.date.toDate().toISOString().startsWith(today))
             .reduce((sum: number, tx: any) => sum + tx.amount, 0);
-    }, [user.transactions]);
+    }, [userTransactions]);
 
     const todaysTransactionsCount = useMemo(() => {
-         const today = new Date().toISOString().split('T')[0];
-        return user.transactions.filter((tx: any) => tx.type === 'received' && tx.date.startsWith(today)).length;
-    }, [user.transactions]);
+        if (!userTransactions) return 0;
+        const today = new Date().toISOString().split('T')[0];
+        return userTransactions.filter((tx: any) => tx.type === 'received' && tx.date.toDate().toISOString().startsWith(today)).length;
+    }, [userTransactions]);
     
     const { allRequests } = useBnpl();
     
@@ -261,8 +273,8 @@ export default function AdminUserDetail({ user, onBack, onUpdate }: { user: any,
     }, [allRequests, user.alias]);
 
 
-    const totalVaultsBalance = useMemo(() => user.vaults.reduce((acc: number, vault: any) => acc + vault.balance, 0), [user.vaults]);
-    const totalTontinesBalance = useMemo(() => user.tontines.reduce((acc: number, tontine: any) => acc + (tontine.amount * tontine.participants.length), 0), [user.tontines]);
+    const totalVaultsBalance = useMemo(() => (user.vaults || []).reduce((acc: number, vault: any) => acc + vault.balance, 0), [user.vaults]);
+    const totalTontinesBalance = useMemo(() => (user.tontines || []).reduce((acc: number, tontine: any) => acc + (tontine.amount * tontine.participants.length), 0), [user.tontines]);
     const virtualCardBalance = useMemo(() => user.virtualCard?.balance ?? 0, [user.virtualCard]);
 
     const handleToggleSuspension = () => {
