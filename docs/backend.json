@@ -1,0 +1,275 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the PAYTIK application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user. (Firestore ID - RECOMMENDED)"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "User's phone number including country code. Used as an alias."
+        },
+        "alias": {
+          "type": "string",
+          "description": "Automatically generated payment address alias."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "User's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "User's last name."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "qrCodeId": {
+          "type": "string",
+          "description": "Reference to the user's QR Code. (Relationship: User 1:1 QRCode)"
+        }
+      },
+      "required": [
+        "id",
+        "phoneNumber"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction within the PAYTIK application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction. (Firestore ID - RECOMMENDED)"
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Reference to the User who initiated the transaction. (Relationship: User 1:N Transaction (Sender))"
+        },
+        "receiverId": {
+          "type": "string",
+          "description": "Reference to the User who received the transaction. (Relationship: User 1:N Transaction (Receiver))"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time the transaction occurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description or memo associated with the transaction."
+        },
+        "transactionType": {
+          "type": "string",
+          "description": "The type of transaction (e.g., payment, refund, transfer)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the transaction (e.g., pending, completed, failed)."
+        },
+        "localInstrument": {
+          "type": "string",
+          "description": "Local instrument code for the transaction (e.g., 500, 521, 520, 401, 631)."
+        },
+        "latitude": {
+          "type": "number",
+          "description": "Latitude of the device at the time of the transaction."
+        },
+        "longitude": {
+          "type": "number",
+          "description": "Longitude of the device at the time of the transaction."
+        }
+      },
+      "required": [
+        "id",
+        "senderId",
+        "receiverId",
+        "amount",
+        "timestamp",
+        "transactionType",
+        "status"
+      ]
+    },
+    "QRCode": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QRCode",
+      "type": "object",
+      "description": "Represents a QR code associated with a user or payment request.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the QR Code. (Firestore ID - RECOMMENDED)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User associated with the QR code. (Relationship: User 1:1 QRCode)"
+        },
+        "shId": {
+          "type": "string",
+          "description": "SHID (Sharing Identifier) associated with the QR code."
+        },
+        "merchantChannelId": {
+          "type": "number",
+          "description": "Merchant channel ID encoded in the QR code (e.g., 731)."
+        },
+        "content": {
+          "type": "string",
+          "description": "The actual QR code data or URL."
+        },
+        "generationDate": {
+          "type": "string",
+          "description": "The date and time the QR code was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "shId",
+        "merchantChannelId",
+        "content"
+      ]
+    },
+    "PaymentRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PaymentRequest",
+      "type": "object",
+      "description": "Represents a request for payment (RTP) initiated by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payment request. (Firestore ID - RECOMMENDED)"
+        },
+        "requesterId": {
+          "type": "string",
+          "description": "Reference to the User who is requesting the payment. (Relationship: User 1:N PaymentRequest (Requester))"
+        },
+        "payerId": {
+          "type": "string",
+          "description": "Reference to the User from whom payment is requested. (Relationship: User 1:N PaymentRequest (Payer))"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount requested."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the payment request (e.g., pending, accepted, rejected)."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The date by which the payment is requested.",
+          "format": "date-time"
+        },
+        "localInstrument": {
+          "type": "string",
+          "description": "Local instrument code for the payment request."
+        }
+      },
+      "required": [
+        "id",
+        "requesterId",
+        "payerId",
+        "amount",
+        "status",
+        "dueDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information. The 'userId' parameter is the unique identifier for the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores transaction data associated with a specific user. The 'userId' parameter identifies the user, and 'transactionId' is the unique identifier for the transaction.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user (either sender or receiver)."
+            },
+            {
+              "name": "transactionId",
+              "description": "Unique identifier for the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/qrcodes/{qrCodeId}",
+        "definition": {
+          "entityName": "QRCode",
+          "schema": {
+            "$ref": "#/backend/entities/QRCode"
+          },
+          "description": "Stores QR code data. Each QR code is associated with a user via the userId field within the document.",
+          "params": [
+            {
+              "name": "qrCodeId",
+              "description": "Unique identifier for the QR Code."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/paymentRequests/{paymentRequestId}",
+        "definition": {
+          "entityName": "PaymentRequest",
+          "schema": {
+            "$ref": "#/backend/entities/PaymentRequest"
+          },
+          "description": "Stores payment request data associated with a specific user. The 'userId' parameter identifies the user (either requester or payer), and 'paymentRequestId' is the unique identifier for the payment request.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user (either requester or payer)."
+            },
+            {
+              "name": "paymentRequestId",
+              "description": "Unique identifier for the payment request."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, following the core design principles and strategy mandates outlined in the prompt. The design emphasizes authorization independence through denormalization and structural segregation for a homogeneous security posture. Transactions and Payment Requests are stored under the respective users involved to leverage path-based ownership. QR Codes are stored separately and referenced by user ID. This structure prioritizes secure 'list' operations, clear ownership, and avoids hierarchical authorization dependencies, simplifying security rules and ensuring data integrity.\n\nAuthorization Independence is achieved by storing transaction and payment request data directly under the users involved (sender/receiver, requester/payer), eliminating the need for `get()` calls to determine ownership or authorization. Each transaction document is self-contained with all relevant information. The structure also supports the required QAPs by segregating data based on ownership (path-based ownership) and using collections to manage user data.\n"
+  }
+}
