@@ -6,7 +6,7 @@
  * - assessBnplApplication - A function that handles the BNPL assessment process.
  */
 
-import { aiGenerate } from '@/ai/gemini';
+import { openaiGenerate } from '@/ai/openai';
 import { BnplAssessmentInputSchema, BnplAssessmentOutputSchema, type BnplAssessmentInput, type BnplAssessmentOutput } from '@/lib/types';
 
 
@@ -69,6 +69,6 @@ Date de première échéance: ${input.firstInstallmentDate}
 Taux de marge: ${input.marginRate}% par période
 `;
 
-  const result = await aiGenerate(prompt, true);
-  return BnplAssessmentOutputSchema.parse(result);
+  const result = await openaiGenerate(prompt);
+  return BnplAssessmentOutputSchema.parse(JSON.parse(result));
 }

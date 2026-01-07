@@ -9,7 +9,7 @@
  */
 import type { BillPaymentAssistantInput, BillPaymentAssistantOutput } from '@/lib/types';
 import { BillPaymentAssistantOutputSchema } from '@/lib/types';
-import { aiGenerate } from '@/ai/gemini';
+import { openaiGenerate } from '@/ai/openai';
 
 export async function billPaymentAssistant(input: BillPaymentAssistantInput): Promise<BillPaymentAssistantOutput> {
 
@@ -28,6 +28,6 @@ Vérifications à effectuer:
 Renvoyez un objet JSON avec 'isValid' (true si tout semble correct, false sinon) et une liste de 'suggestions'.
 `;
 
-  const result = await aiGenerate(prompt, true);
-  return BillPaymentAssistantOutputSchema.parse(result);
+  const result = await openaiGenerate(prompt);
+  return BillPaymentAssistantOutputSchema.parse(JSON.parse(result));
 }

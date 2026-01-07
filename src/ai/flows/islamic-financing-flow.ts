@@ -6,7 +6,7 @@
  * - islamicFinancingAssessment - a function that handles the financing assessment process.
  */
 
-import { aiGenerate } from '@/ai/gemini';
+import { openaiGenerate } from '@/ai/openai';
 import { IslamicFinancingInputSchema, IslamicFinancingOutputSchema, type IslamicFinancingInput, type IslamicFinancingOutput } from '@/lib/types';
 
 export async function islamicFinancingAssessment(
@@ -58,6 +58,6 @@ Solde actuel : ${input.currentBalance} F
 **Répondez uniquement avec un objet JSON valide conforme au schéma.**
 `;
 
-    const result = await aiGenerate(prompt, true);
-    return IslamicFinancingOutputSchema.parse(result);
+    const result = await openaiGenerate(prompt);
+    return IslamicFinancingOutputSchema.parse(JSON.parse(result));
 }

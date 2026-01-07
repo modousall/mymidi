@@ -11,7 +11,7 @@ export async function openaiGenerate(prompt: string): Promise<string> {
       {
         role: "system",
         content:
-          "Tu es MiDi AI, l’assistant intelligent d’une super-app financière.",
+          "Tu es MiDi AI, l’assistant intelligent d’une super-app financière. Tu dois répondre uniquement avec un objet JSON valide.",
       },
       {
         role: "user",
@@ -19,6 +19,7 @@ export async function openaiGenerate(prompt: string): Promise<string> {
       },
     ],
     temperature: 0.3,
+    response_format: { type: "json_object" },
   });
 
   const content = response.choices?.[0]?.message?.content;
