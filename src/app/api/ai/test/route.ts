@@ -1,10 +1,10 @@
 
 import { NextResponse } from "next/server";
-import { aiGenerate } from "@/ai/gemini";
+import { openaiGenerate } from "@/ai/openai";
 
 export async function GET() {
   try {
-    const result = await aiGenerate(
+    const result = await openaiGenerate(
       "Tu es MiDi AI. Présente-toi en une phrase claire."
     );
 
