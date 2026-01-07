@@ -243,11 +243,13 @@ function SimulatedApp() {
                         <ProductProvider>
                             <RoleProvider>
                                 <FeatureFlagProvider>
-                                    <BnplProvider alias="admin_sim_bnpl">
-                                        <IslamicFinancingProvider alias="admin_sim_islamic">
-                                            <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
-                                        </IslamicFinancingProvider>
-                                    </BnplProvider>
+                                    <BalanceProvider alias="admin_sim_balance">
+                                        <BnplProvider alias="admin_sim_bnpl">
+                                            <IslamicFinancingProvider alias="admin_sim_islamic">
+                                                <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
+                                            </IslamicFinancingProvider>
+                                        </BnplProvider>
+                                    </BalanceProvider>
                                 </FeatureFlagProvider>
                             </RoleProvider>
                         </ProductProvider>
