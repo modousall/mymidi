@@ -213,12 +213,13 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
         financingType: 'bnpl', 
         ...prefillData, 
         firstInstallmentDate: new Date(prefillData.firstInstallmentDate),
-        clientAlias: prefillData.clientAlias || ''
+        clientAlias: prefillData.clientAlias || '',
+        downPayment: prefillData.downPayment || undefined,
     } : {
         financingType: 'bnpl',
         merchantAlias: '',
         amount: '' as any,
-        downPayment: '' as any,
+        downPayment: undefined,
         repaymentFrequency: "weekly",
         installmentsCount: 17,
         firstInstallmentDate: undefined,
@@ -430,14 +431,14 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
                 <FormField control={form.control} name="amount" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Montant total de l'achat</FormLabel>
-                        <FormControl><Input type="number" {...field} readOnly={!!prefillData} className={prefillData ? 'bg-muted' : ''}/></FormControl>
+                        <FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly={!!prefillData} className={prefillData ? 'bg-muted' : ''}/></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
                 <FormField control={form.control} name="downPayment" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Avance (optionnel)</FormLabel>
-                        <FormControl><Input type="number" {...field} readOnly={!!prefillData} className={prefillData ? 'bg-muted' : ''}/></FormControl>
+                        <FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly={!!prefillData} className={prefillData ? 'bg-muted' : ''}/></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -445,7 +446,7 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
                     <FormField control={form.control} name="installmentsCount" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Nombre d'échéances</FormLabel>
-                            <FormControl><Input type="number" {...field} readOnly={!!prefillData} className={prefillData ? 'bg-muted' : ''} /></FormControl>
+                            <FormControl><Input type="number" {...field} value={field.value ?? ''} readOnly={!!prefillData} className={prefillData ? 'bg-muted' : ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}/>
@@ -502,21 +503,21 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
                 <FormField control={form.control} name="amount" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Montant du financement (Fcfa)</FormLabel>
-                        <FormControl><Input type="number" placeholder="ex: 250000" {...field} /></FormControl>
+                        <FormControl><Input type="number" placeholder="ex: 250000" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
                 <FormField control={form.control} name="durationMonths" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Durée de remboursement (en mois)</FormLabel>
-                        <FormControl><Input type="number" placeholder="ex: 12" {...field} /></FormControl>
+                        <FormControl><Input type="number" placeholder="ex: 12" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
                 <FormField control={form.control} name="purpose" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Objet du financement</FormLabel>
-                        <FormControl><Textarea placeholder="ex: Achat d'un ordinateur portable" {...field} /></FormControl>
+                        <FormControl><Textarea placeholder="ex: Achat d'un ordinateur portable" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
