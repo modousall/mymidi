@@ -107,8 +107,13 @@ export function useCollection<T = any>(
 
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+
   if(memoizedTargetRefOrQuery && !(memoizedTargetRefOrQuery as any).__memo) {
-    throw new Error(JSON.stringify(memoizedTargetRefOrQuery) + ' was not properly memoized using useMemoFirebase');
+    // This warning helps developers catch performance issues.
+    // It's a warning instead of an error to prevent crashing the app during development
+    // if a one-off, unmemoized query is acceptable in a specific context.
+    console.warn('Performance warning: A non-memoized query was passed to useCollection. Consider wrapping a `useMemoFirebase()` to prevent unnecessary re-renders and Firestore reads. Query:', JSON.stringify(memoizedTargetRefOrQuery));
   }
+  
   return { data, isLoading, error };
 }
