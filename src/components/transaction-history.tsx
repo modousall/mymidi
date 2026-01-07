@@ -225,11 +225,12 @@ const TransactionDetailsDialog = ({ transaction }: { transaction: Transaction })
 }
 
 export default function TransactionHistory({ showAll, onShowAll }: TransactionHistoryProps) {
-    const { transactions } = useTransactions();
+    const { transactions, isLoading } = useTransactions();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
 
     const filteredTransactions = useMemo(() => {
+        if (!transactions) return [];
         return transactions.filter(tx => {
             const searchMatch = searchTerm.toLowerCase() === '' ||
                                 tx.counterparty.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -292,7 +293,7 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
                 )}
             </CardHeader>
             <CardContent className="px-0">
-                {!transactions ? (
+                {isLoading ? (
                     <div className="flex justify-center items-center h-24">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
