@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useContacts } from "@/hooks/use-contacts";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from 'firebase/firestore';
+import { useUserManagement } from "@/hooks/use-user-management";
 
 
 type AliasSelectorProps = {
@@ -22,15 +21,12 @@ type AliasSelectorProps = {
 export function AliasSelector({ value, onChange, disabled = false, filter = 'all' }: AliasSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const { contacts } = useContacts();
-  const firestore = useFirestore();
-  
-  // Only fetch merchants, as listing all users is a protected operation
-  const merchantsQuery = useMemoFirebase(() => {
-    if (!firestore || filter !== 'merchant') return null;
-    return query(collection(firestore, 'users'), where('role', '==', 'merchant'));
-  }, [firestore, filter]);
+  const { users, refreshUsers } = useUserManagement();
 
-  const { data: merchants, isLoading } = useCollection(merchantsQuery);
+  React.useEffect(() => {
+    refreshUsers();
+  }, [refreshUsers]);
+
 
   const suggestions = React.useMemo(() => {
     const contactSuggestions = contacts.map(c => ({
@@ -40,14 +36,16 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
         type: 'contact' as const
     }));
 
-    const merchantSuggestions = (merchants || []).map(u => {
-        const publicIdentifier = u.merchantCode || u.phoneNumber;
-        return {
-            value: publicIdentifier!,
-            label: `${u.firstName} ${u.lastName} (Marchand)`,
-            search: `${u.firstName} ${u.lastName} ${publicIdentifier}`,
-            type: 'merchant' as const
-        }
+    const merchantSuggestions = (users || [])
+        .filter(u => u.role === 'merchant')
+        .map(u => {
+            const publicIdentifier = u.merchantCode || u.alias;
+            return {
+                value: publicIdentifier!,
+                label: `${u.name} (Marchand)`,
+                search: `${u.name} ${publicIdentifier}`,
+                type: 'merchant' as const
+            }
     });
     
     // In user mode, we only show contacts. In merchant filter mode, we show merchants.
@@ -59,7 +57,7 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
 
     return uniqueSuggestions;
 
-  }, [merchants, contacts, filter]);
+  }, [users, contacts, filter]);
 
   const getIcon = (type: 'contact' | 'user' | 'merchant') => {
       if (type === 'merchant') return <Building className="mr-2 h-4 w-4 text-muted-foreground"/>;
@@ -75,9 +73,9 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={disabled || isLoading}
+          disabled={disabled || users.length === 0}
         >
-          {isLoading ? (
+          {users.length === 0 ? (
             <div className="flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Chargement...</div>
           ) : (
             value

@@ -14,17 +14,14 @@ import { TransactionsProvider } from "@/hooks/use-transactions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
 import { formatCurrency } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from 'firebase/firestore';
+import { useUserManagement } from "@/hooks/use-user-management";
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
     merchant: 'default',
 };
 
 export default function AdminMerchantManagement() {
-    const firestore = useFirestore();
-    const merchantsQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('role', '==', 'merchant')), [firestore]);
-    const { data: users, isLoading } = useCollection(merchantsQuery);
+    const { users, refreshUsers } = useUserManagement();
 
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -33,11 +30,11 @@ export default function AdminMerchantManagement() {
     const filteredMerchants = useMemo(() => {
         if (!users) return [];
         return users.filter(user => 
-            user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.role === 'merchant' &&
+            (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.merchantCode && user.merchantCode.toLowerCase().includes(searchTerm.toLowerCase()))
+            (user.merchantCode && user.merchantCode.toLowerCase().includes(searchTerm.toLowerCase())))
         );
     }, [users, searchTerm]);
     
@@ -47,14 +44,16 @@ export default function AdminMerchantManagement() {
     
     const handleBackToList = () => {
         setSelectedUser(null);
+        refreshUsers();
     }
     
     const handleUserCreated = () => {
         setIsCreateDialogOpen(false);
+        refreshUsers();
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={() => {}} />
+        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
     }
     
     const adminAlias = "+221775478575";
@@ -95,7 +94,7 @@ export default function AdminMerchantManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? (
+                    {users.length === 0 ? (
                         <div className="flex justify-center items-center h-64">
                             <Loader2 className="animate-spin h-8 w-8" />
                         </div>
@@ -115,11 +114,11 @@ export default function AdminMerchantManagement() {
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-10 w-10">
-                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
-                                                    <AvatarFallback>{user.firstName?.charAt(0)}</AvatarFallback>
+                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
+                                                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-medium">{user.firstName} {user.lastName}</p>
+                                                    <p className="font-medium">{user.name}</p>
                                                     <p className="text-sm text-muted-foreground">{user.email}</p>
                                                 </div>
                                             </div>
@@ -136,7 +135,7 @@ export default function AdminMerchantManagement() {
                             </TableBody>
                         </Table>
                     )}
-                    {!isLoading && filteredMerchants.length === 0 && (
+                    {!users.length && filteredMerchants.length === 0 && (
                         <div className="text-center p-8">
                             <p>Aucun marchand ne correspond à votre recherche.</p>
                         </div>

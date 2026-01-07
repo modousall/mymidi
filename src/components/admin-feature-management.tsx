@@ -10,8 +10,7 @@ import { CreditCard, Users, Clock, PiggyBank, Wallet, Handshake, HandCoins } fro
 import AdminFeatureDetail from './admin-feature-detail';
 import AdminProductManagement from './admin-product-management';
 import { formatCurrency } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { useUserManagement } from '@/hooks/use-user-management';
 
 
 const KPICard = ({ title, value, icon, isEnabled, onToggle, description, featureKey, onClick }: { title: string, value: string, icon: JSX.Element, isEnabled?: boolean, onToggle?: (feature: Feature, value: boolean) => void, description: string, featureKey?: Feature, onClick?: () => void }) => (
@@ -46,10 +45,7 @@ export default function AdminFeatureManagement() {
   const [activeView, setActiveView] = useState<'overview' | 'featureDetail' | 'billers'>('overview');
   const [selectedFeature, setSelectedFeature] = useState<'mainBalance' | 'vaults' | 'virtualCards' | 'tontine' | null>(null);
   
-  // Replace useUserManagement with direct Firestore collection fetch
-  const firestore = useFirestore();
-  const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const { data: users, isLoading } = useCollection(usersCollection);
+  const { users } = useUserManagement();
 
   const kpis = useMemo(() => {
     if (!users) return { mainBalance: 0, virtualCards: 0, vaults: 0, tontine: 0 };

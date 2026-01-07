@@ -11,15 +11,15 @@ import { Badge } from './ui/badge';
 import AdminUserDetail from './admin-user-detail';
 import { Input } from './ui/input';
 import { formatCurrency } from '@/lib/utils';
-// Note: useUserManagement is removed, data needs to come from a new source e.g. a global user provider or API call
-// For now, we will mock or disable functionality that depends on the full user list.
+import type { ManagedUserWithDetails } from '@/hooks/use-user-management';
+
 
 type Feature = 'mainBalance' | 'vaults' | 'virtualCards' | 'tontine';
 
 type AdminFeatureDetailProps = {
     feature: Feature;
     onBack: () => void;
-    users: any[]; // Receive users as a prop
+    users: ManagedUserWithDetails[]; // Receive users as a prop
 }
 
 const featureConfig = {
@@ -27,31 +27,31 @@ const featureConfig = {
         title: "Comptes Principaux",
         icon: <Wallet />,
         description: "Liste de tous les utilisateurs et de leur solde principal.",
-        getBalance: (u: any) => u.balance,
+        getBalance: (u: ManagedUserWithDetails) => u.balance,
     },
     vaults: {
         title: "Coffres / Tirelires",
         icon: <PiggyBank />,
         description: "Liste des utilisateurs ayant des coffres et le solde total de leurs coffres.",
-        getBalance: (u: any) => u.vaults?.reduce((sum: number, v: any) => sum + v.balance, 0) || 0,
+        getBalance: (u: ManagedUserWithDetails) => u.vaults?.reduce((sum: number, v: any) => sum + v.balance, 0) || 0,
     },
     virtualCards: {
         title: "Cartes Virtuelles",
         icon: <CreditCard />,
         description: "Liste des utilisateurs possédant une carte virtuelle et son solde.",
-        getBalance: (u: any) => u.virtualCard?.balance ?? 0,
+        getBalance: (u: ManagedUserWithDetails) => u.virtualCard?.balance ?? 0,
     },
     tontine: {
         title: "Tontines",
         icon: <Users />,
         description: "Liste des utilisateurs participant à des tontines et la valeur totale de leurs tontines.",
-        getBalance: (u: any) => u.tontines?.reduce((sum: number, t: any) => sum + t.amount * t.participants.length, 0) || 0,
+        getBalance: (u: ManagedUserWithDetails) => u.tontines?.reduce((sum: number, t: any) => sum + t.amount * t.participants.length, 0) || 0,
     }
 }
 
 export default function AdminFeatureDetail({ feature, onBack, users = [] }: AdminFeatureDetailProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedUser, setSelectedUser] = useState<any | null>(null);
+    const [selectedUser, setSelectedUser] = useState<ManagedUserWithDetails | null>(null);
 
     const config = featureConfig[feature];
 
