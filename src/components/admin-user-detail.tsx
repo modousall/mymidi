@@ -30,6 +30,9 @@ import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
 import { updateDoc, doc } from 'firebase/firestore';
 import type { Transaction } from '@/hooks/use-transactions';
+import { TransactionsProvider } from '@/hooks/use-transactions';
+import { AccountProvider } from '@/hooks/use-account';
+import React from 'react';
 
 
 // Import product components
@@ -140,24 +143,31 @@ const ResetPinDialog = ({ user, onClose }: { user: any, onClose: () => void }) =
 }
 
 const UserServiceProvider = ({ user, children }: { user: ManagedUser, children: React.ReactNode }) => {
+    const accountId = user.role === 'merchant' ? `acc_merchant_${user.id}` : `acc_user_${user.id}`;
+    const accountType = user.role === 'merchant' ? 'merchant' : 'user';
+
     return (
-        <FeatureFlagProvider>
-            <AvatarProvider alias={user.alias}>
-                    <BalanceProvider alias={user.alias}>
-                        <BnplProvider alias={user.alias}>
-                            <ContactsProvider alias={user.alias}>
-                                <VirtualCardProvider alias={user.alias}>
-                                    <VaultsProvider alias={user.alias}>
-                                        <TontineProvider alias={user.alias}>
-                                            {children}
-                                        </TontineProvider>
-                                    </VaultsProvider>
-                                </VirtualCardProvider>
-                            </ContactsProvider>
-                        </BnplProvider>
-                    </BalanceProvider>
-            </AvatarProvider>
-        </FeatureFlagProvider>
+        <AccountProvider account={{ accountId, type: accountType }}>
+            <TransactionsProvider>
+                <FeatureFlagProvider>
+                    <AvatarProvider alias={user.alias}>
+                            <BalanceProvider alias={user.alias}>
+                                <BnplProvider alias={user.alias}>
+                                    <ContactsProvider alias={user.alias}>
+                                        <VirtualCardProvider alias={user.alias}>
+                                            <VaultsProvider alias={user.alias}>
+                                                <TontineProvider alias={user.alias}>
+                                                    {children}
+                                                </TontineProvider>
+                                            </VaultsProvider>
+                                        </VirtualCardProvider>
+                                    </ContactsProvider>
+                                </BnplProvider>
+                            </BalanceProvider>
+                    </AvatarProvider>
+                </FeatureFlagProvider>
+            </TransactionsProvider>
+        </AccountProvider>
     )
 };
 
