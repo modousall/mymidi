@@ -37,17 +37,14 @@ Analysez la demande de "Credit Marchands" (BNPL) suivante.
     - Un score de risque bas est bon, un score élevé est mauvais.
     - Notez ce score et expliquez comment il a été obtenu.
 
-**Règles de Décision basées sur le Score de Risque:**
-
-- **approbation automatique (approved)** : Score de risque < 40. Montants raisonnables (< 100 000 Fcfa) avec un bon historique et un risque global faible.
-- **rejet automatique (rejected)** : Score de risque > 70. Nouveaux utilisateurs sans historique, montants clairement excessifs sans justification, ou un risque global jugé trop élevé.
-- **examen par comité (review)** : Score de risque entre 40 et 70. Cas limites (ex: montant élevé mais bon historique).
+**Règles de Décision :**
+-  Le statut de la demande doit TOUJOURS être 'review'. Un administrateur prendra la décision finale.
 
 **Output Requis :**
 
 Vous devez répondre uniquement avec un objet JSON valide qui respecte la structure suivante (ne renvoyez aucun texte ou formatage supplémentaire) :
 {
-  "status": "'approved' | 'rejected' | 'review'",
+  "status": "'review'",
   "reason": "Une justification claire et concise pour la décision.",
   "repaymentPlan": "Un plan de remboursement si la demande est approuvée, sinon une chaîne vide.",
   "scores": {

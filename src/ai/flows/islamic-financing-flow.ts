@@ -34,16 +34,13 @@ Analysez la demande de financement suivante.
     - Un score de risque bas est bon, un score élevé est mauvais.
     - Notez ce score et expliquez comment il a été obtenu.
 
-**Règles de Décision basées sur le Score de Risque:**
-
-- **approbation automatique (approved)** : Score de risque < 40. Montants raisonnables (< 300 000 F) avec un bon historique et un objet clair.
-- **rejet automatique (rejected)** : Score de risque > 70. Nouveaux utilisateurs sans historique, montants excessifs, ou objet non conforme.
-- **examen par comité (review)** : Score de risque entre 40 et 70. Cas limites (ex: montant élevé mais bon historique).
+**Règles de Décision :**
+-  Le statut de la demande doit TOUJOURS être 'review'. Un administrateur prendra la décision finale.
 
 **Output Requis :**
 
 1.  **Scores**: Remplissez l'objet 'scores' avec les 4 scores calculés (valeur et explication).
-2.  **Statut** : 'approved', 'rejected', ou 'review' basé sur le score de risque.
+2.  **Statut** : La valeur doit obligatoirement être 'review'.
 3.  **Raison (Justification)** : Fournissez une raison claire, concise et structurée qui servira de base pour le Procès-Verbal (PV) de la décision. Commencez par la conclusion, puis listez les points clés de l'analyse des scores.
 4.  **Plan de Remboursement** : Si le statut est 'approved', calculez le plan de remboursement avec un taux de profit annuel de 23.5%.
 
