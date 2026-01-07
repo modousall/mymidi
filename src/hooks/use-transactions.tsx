@@ -32,13 +32,15 @@ export const TransactionsContext = createContext<TransactionsContextType | undef
 
 type TransactionsProviderProps = {
     children: ReactNode;
-    forUserId?: string; // Optional user ID for admin views
+    forUserId?: string; // Optional user ID for admin/simulation views
 };
 
 export const TransactionsProvider = ({ children, forUserId }: TransactionsProviderProps) => {
   const { user } = useUser();
   const firestore = useFirestore();
 
+  // In simulation mode (forUserId is provided), we don't rely on the authenticated user.
+  // In a real scenario, we use the authenticated user's UID.
   const targetUserId = forUserId || user?.uid;
 
   const transactionsQuery = useMemoFirebase(() => {
@@ -49,22 +51,63 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
     );
   }, [targetUserId, firestore]);
   
-  const { data: rawTransactions, isLoading } = useCollection<Omit<Transaction, 'id' | 'date'> & { date: any }>(transactionsQuery);
+  const { data: rawTransactions, isLoading: isFirebaseLoading } = useCollection<Omit<Transaction, 'id' | 'date'> & { date: any }>(transactionsQuery);
+  
+  const [localTransactions, setLocalTransactions] = useState<Transaction[]>([]);
+  const [isLocalLoading, setIsLocalLoading] = useState(true);
+
+  // Effect for handling local storage in simulation mode
+  useEffect(() => {
+    if (forUserId && !user) { // Simulation mode
+      const storageKey = `midi_transactions_${forUserId}`;
+      try {
+        const storedTxs = localStorage.getItem(storageKey);
+        if (storedTxs) {
+          setLocalTransactions(JSON.parse(storedTxs));
+        }
+      } catch (e) { console.error(e); }
+      setIsLocalLoading(false);
+    }
+  }, [forUserId, user]);
+
+  useEffect(() => {
+    if (forUserId && !user && !isLocalLoading) { // Simulation mode
+      const storageKey = `midi_transactions_${forUserId}`;
+      localStorage.setItem(storageKey, JSON.stringify(localTransactions));
+    }
+  }, [localTransactions, forUserId, user, isLocalLoading]);
+
 
   const transactions = useMemo(() => {
+      if (forUserId && !user) { // Simulation mode
+          return localTransactions;
+      }
       if (!rawTransactions) return [];
       return rawTransactions.map(tx => ({
           ...tx,
           date: tx.date?.toDate ? tx.date.toDate().toISOString() : tx.date,
       })) as Transaction[];
-  }, [rawTransactions]);
+  }, [rawTransactions, localTransactions, forUserId, user]);
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
+    const newTx = {
+        ...transaction,
+        id: uuidv4(),
+        date: new Date().toISOString(),
+        userId: targetUserId || 'simulated',
+    };
+
+    if (forUserId && !user) { // Simulation mode
+        setLocalTransactions(prev => [newTx, ...prev]);
+        return;
+    }
+
     if (!targetUserId || !firestore) {
         console.error("User not authenticated or Firestore not available.");
         return;
     }
+
     const transactionsColRef = collection(firestore, `users/${targetUserId}/transactions`);
     
     addDoc(transactionsColRef, {
@@ -85,6 +128,11 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   }
 
   const updateTransactionStatus = (id: string, status: Transaction['status']) => {
+     if (forUserId && !user) { // Simulation mode
+        setLocalTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status } : tx));
+        return;
+    }
+
     if (!targetUserId || !firestore) return;
     const txDocRef = doc(firestore, `users/${targetUserId}/transactions`, id);
     
@@ -99,7 +147,7 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
 
   const value = { 
       transactions: transactions, 
-      isLoading,
+      isLoading: user ? isFirebaseLoading : isLocalLoading,
       addTransaction, 
       findPendingTransactionByCode, 
       updateTransactionStatus 

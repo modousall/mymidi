@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { BalanceProvider } from '@/hooks/use-balance';
 import { ContactsProvider } from '@/hooks/use-contacts';
@@ -20,12 +19,11 @@ import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUser, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import AuthForm from '@/components/login-form';
 import Dashboard from '@/components/dashboard';
 import { AvatarProvider } from '@/hooks/use-avatar';
-import { logout } from '@/lib/auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { User, Shield, Building } from 'lucide-react';
 
 
 const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
@@ -48,6 +46,39 @@ type UserInfo = {
   alias: string;
   isSuspended: boolean;
 };
+
+const mockUsers: Record<string, UserInfo> = {
+    user: {
+        id: 'user-sim-001',
+        firstName: 'Awa',
+        lastName: 'Diallo',
+        name: 'Awa Diallo',
+        email: 'awa.diallo@example.com',
+        role: 'user',
+        alias: '771234567',
+        isSuspended: false,
+    },
+    merchant: {
+        id: 'merchant-sim-001',
+        firstName: 'Lamine',
+        lastName: 'Diop',
+        name: 'Boutique Lamine',
+        email: 'lamine@boutique.sn',
+        role: 'merchant',
+        alias: '781234567',
+        isSuspended: false,
+    },
+    admin: {
+        id: 'admin-sim-001',
+        firstName: 'Admin',
+        lastName: 'Midi',
+        name: 'Admin Midi',
+        email: 'admin@midi.sn',
+        role: 'admin',
+        alias: '701234567',
+        isSuspended: false,
+    }
+}
 
 
 // A single wrapper for all providers that depend on a user alias
@@ -89,68 +120,49 @@ const AppProviders = ({ userId, alias, children }: { userId: string, alias: stri
     )
 }
 
-function AuthWrapper() {
-    const { user, isUserLoading } = useUser();
+function SimulatorSelector({ onSelectProfile }: { onSelectProfile: (profile: UserInfo) => void }) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle>Sélecteur de Profil (Simulation)</CardTitle>
+                    <CardDescription>Choisissez un profil pour tester l'application.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Button className="w-full justify-start h-14" onClick={() => onSelectProfile(mockUsers.user)}>
+                        <User className="mr-4"/>
+                        <div>
+                            <p>Utilisateur Standard</p>
+                            <p className="text-xs text-primary-foreground/80">Awa Diallo</p>
+                        </div>
+                    </Button>
+                     <Button className="w-full justify-start h-14" variant="secondary" onClick={() => onSelectProfile(mockUsers.merchant)}>
+                        <Building className="mr-4"/>
+                        <div>
+                            <p>Marchand</p>
+                             <p className="text-xs text-secondary-foreground/80">Boutique Lamine</p>
+                        </div>
+                    </Button>
+                     <Button className="w-full justify-start h-14" variant="destructive" onClick={() => onSelectProfile(mockUsers.admin)}>
+                        <Shield className="mr-4"/>
+                        <div>
+                            <p>Administrateur</p>
+                             <p className="text-xs text-destructive-foreground/80">Admin Midi</p>
+                        </div>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
+function SimulatedApp() {
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-    const firestore = useFirestore();
     const { toast } = useToast();
-
-    // Memoize the document reference
-    const userDocRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
     
-    // Use the useDoc hook to get the user profile data
-    const { data: userDoc, isLoading: isUserDocLoading, error: userDocError } = useDoc<Omit<UserInfo, 'id' | 'alias' | 'name'>>(userDocRef);
-
-    // Main loading state that waits for both Firebase Auth and Firestore profile
-    const isLoading = isUserLoading || (user && isUserDocLoading);
-
-    useEffect(() => {
-        if (isLoading) return; // Wait until everything is loaded
-
-        if (user && userDoc) {
-            if (userDoc.isSuspended) {
-                toast({
-                    title: "Compte Suspendu",
-                    description: "Votre compte a été suspendu. Veuillez contacter le support.",
-                    variant: "destructive",
-                });
-                logout();
-                setUserInfo(null);
-                return;
-            }
-            
-            // Set the user info state once all data is available
-            setUserInfo({
-                id: user.uid,
-                firstName: userDoc.firstName,
-                lastName: userDoc.lastName,
-                name: `${userDoc.firstName} ${userDoc.lastName}`,
-                email: user.email || '',
-                role: userDoc.role,
-                alias: userDoc.phoneNumber,
-                isSuspended: userDoc.isSuspended,
-            });
-
-        } else {
-             // If user is logged out or profile is missing, ensure userInfo is null
-            setUserInfo(null);
-            if (user && !userDoc && !isUserDocLoading) { // Check isLoading again to prevent premature warnings
-                // This can happen briefly during signup, but if it persists, it's a data integrity issue.
-                console.warn("User is authenticated, but no profile document was found. This might be temporary during signup or indicate a data issue.");
-                 if(userDocError) {
-                    console.error("Firestore error fetching user profile:", userDocError);
-                 }
-            }
-        }
-    }, [user, userDoc, isUserDocLoading, isLoading, toast, userDocError]);
-
-
     const handleLogout = () => {
-        logout();
-        toast({ title: "Déconnexion", description: "Vous avez été déconnecté." });
+        setUserInfo(null);
+        toast({ title: "Déconnexion simulée", description: "Vous êtes revenu au sélecteur de profil." });
     }
     
     const renderDashboard = () => {
@@ -169,12 +181,6 @@ function AuthWrapper() {
         }
     };
   
-    // Display a loading screen while authentication state is being determined
-    if (isLoading) {
-        return <div className="flex h-screen items-center justify-center">Chargement...</div>;
-    }
-  
-    // Once loading is complete, render either the authenticated view or the login form
     return (
         <main className="bg-background min-h-screen">
             {userInfo ? (
@@ -183,14 +189,13 @@ function AuthWrapper() {
                 </AppProviders>
             ) : (
                 <CmsProvider>
-                    <AuthForm />
+                    <SimulatorSelector onSelectProfile={setUserInfo} />
                 </CmsProvider>
             )}
         </main>
     );
 }
 
-// The main export is just the AuthWrapper now, FirebaseClientProvider is in layout.tsx
 export default function AuthenticationGate() {
-    return <AuthWrapper />;
+    return <SimulatedApp />;
 }
