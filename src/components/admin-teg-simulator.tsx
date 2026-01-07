@@ -24,10 +24,8 @@ import { ScrollArea } from './ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import TegScheduleReceipt from './teg-schedule-receipt';
 import { useToast } from '@/hooks/use-toast';
-import dynamic from 'next/dynamic';
-
-const html2canvas = dynamic(() => import('html2canvas'), { ssr: false });
-const jsPDF = dynamic(() => import('jspdf').then(mod => mod.jsPDF), { ssr: false });
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 
 const MAX_ANNUAL_TEG = 24.0; // 24%
@@ -160,8 +158,8 @@ export default function AdminTegSimulator() {
     }, [watchedValues]);
     
     const handleDownloadPDF = async () => {
-        if (!jsPDF || !html2canvas || !receiptRef.current) {
-            toast({ title: "Erreur", description: "Les librairies de PDF ne sont pas chargées.", variant: "destructive" });
+        if (!receiptRef.current) {
+            toast({ title: "Erreur", description: "Le reçu n'est pas prêt.", variant: "destructive" });
             return;
         }
         setIsDownloading(true);
