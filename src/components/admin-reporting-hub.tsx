@@ -65,7 +65,7 @@ const FinancingReport = () => {
     )
 }
 
-const RegulatoryReports = () => {
+const RegulatoryReports = ({ allTransactions }: { allTransactions: Transaction[] }) => {
     const [generating, setGenerating] = useState<string | null>(null);
     
     const reports = [
@@ -81,19 +81,34 @@ const RegulatoryReports = () => {
             description: `Le rapport "${reportName}" est en cours de préparation.`,
         });
 
-        // Simulate data fetching and processing
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Simulate data for CSV
-        const fakeData = [
-            { "Date": "2024-07-01", "Type": "Dépôt", "Montant": 50000, "Source": "Client A" },
-            { "Date": "2024-07-02", "Type": "Retrait", "Montant": 20000, "Source": "Client B" },
-            { "Date": "2024-07-03", "Type": "Commission", "Montant": 150, "Source": "SENELEC" },
-        ];
+        // Use real transaction data
+        const dataToExport = allTransactions.map(tx => ({
+            'ID Transaction': tx.id,
+            'ID Utilisateur': tx.userId,
+            'Date': (tx.date as any)?.toDate ? (tx.date as any).toDate().toISOString() : tx.date,
+            'Type': tx.type,
+            'Contrepartie': tx.counterparty,
+            'Raison': tx.reason,
+            'Montant': tx.amount,
+            'Statut': tx.status,
+        }));
+
+        if (dataToExport.length === 0) {
+            toast({
+                title: "Aucune donnée",
+                description: "Il n'y a aucune transaction à exporter pour ce rapport.",
+                variant: "destructive"
+            });
+            setGenerating(null);
+            return;
+        }
 
         try {
             const Papa = (await import('papaparse')).default;
-            const csv = Papa.unparse(fakeData, { header: true });
+            const csv = Papa.unparse(dataToExport, { header: true });
             const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
@@ -177,7 +192,7 @@ export default function AdminReportingHub({ allTransactions }: { allTransactions
                                 onClick={() => setView('financing')}
                             />
                         </div>
-                        <RegulatoryReports />
+                        <RegulatoryReports allTransactions={allTransactions} />
                     </div>
                 );
         }
