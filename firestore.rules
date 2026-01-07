@@ -85,10 +85,9 @@ service cloud.firestore {
      * Returns true if the request is a query for a user by their phone number for sign-in purposes.
      * This is a narrow exception to the general rule of not allowing user listing.
      * The key security is that the client query must be strictly limited to the 'phoneNumber' field.
-     * Crucially, it only allows finding users with the 'user' role, preventing admins from logging in via phone.
      */
     function isSigningInByPhone() {
-        return request.method == 'list' && resource.data.role == 'user';
+        return !isSignedIn() && request.method == 'list';
     }
 
 
