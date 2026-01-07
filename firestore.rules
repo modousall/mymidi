@@ -87,7 +87,8 @@ service cloud.firestore {
      * The key security is that the client query must be strictly limited to the 'phoneNumber' field.
      */
     function isSigningInByPhone() {
-        return !isSignedIn() && request.query.keys().hasOnly(['phoneNumber']);
+        return !isSignedIn() && 
+           request.query.keys().hasOnly(['phoneNumber']);
     }
 
 
@@ -120,7 +121,7 @@ service cloud.firestore {
        */
       match /transactions/{transactionId} {
         allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && (request.resource.data.senderId == userId || request.resource.data.receiverId == userId);
+        allow create: if isOwner(userId);
         allow update: if isExistingOwner(userId) || isAdmin();
         allow delete: if isExistingOwner(userId) || isAdmin();
       }

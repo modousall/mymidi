@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -119,24 +120,24 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 
 
 // A single wrapper for all providers that depend on a user alias
-const AppProviders = ({ children }: { children: React.ReactNode }) => {
+const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider alias="">
+        <TransactionsProvider alias={alias}>
             <TreasuryProvider>
                 <CmsProvider>
                     <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
                         <FeatureFlagProvider>
                             <RoleProvider>
                                 <MonthlyBudgetProvider>
-                                    <BalanceProvider alias="">
-                                        <BnplProvider alias="">
-                                            <IslamicFinancingProvider alias="">
-                                                <AvatarProvider alias="">
-                                                    <ContactsProvider alias="">
-                                                        <VirtualCardProvider alias="">
-                                                            <VaultsProvider alias="">
-                                                                <TontineProvider alias="">
-                                                                    <RecurringPaymentsProvider alias="">
+                                    <BalanceProvider alias={alias}>
+                                        <BnplProvider alias={alias}>
+                                            <IslamicFinancingProvider alias={alias}>
+                                                <AvatarProvider alias={alias}>
+                                                    <ContactsProvider alias={alias}>
+                                                        <VirtualCardProvider alias={alias}>
+                                                            <VaultsProvider alias={alias}>
+                                                                <TontineProvider alias={alias}>
+                                                                    <RecurringPaymentsProvider alias={alias}>
                                                                         {children}
                                                                     </RecurringPaymentsProvider>
                                                                 </TontineProvider>
@@ -344,39 +345,31 @@ function AuthWrapper() {
         };
     
         if (isEmail) {
-            // For emails, the 'secret' is treated as the full password
-            signInWithEmailAndPassword(auth, loginIdentifier, secret)
-                .catch(handleAuthError);
+            signInWithEmailAndPassword(auth, loginIdentifier, secret).catch(handleAuthError);
         } else {
-            // For phone number alias, we first need to find the user's email
             const usersRef = collection(firestore, 'users');
             const q = query(usersRef, where("phoneNumber", "==", loginIdentifier));
     
             getDocs(q).then(querySnapshot => {
                 if (querySnapshot.empty) {
-                    toast({ title: "Alias non trouvé", description: "Aucun utilisateur trouvé avec ce numéro.", variant: "destructive" });
+                    toast({ title: "Alias non trouvé", description: "Aucun utilisateur trouvé avec ce numéro de téléphone.", variant: "destructive" });
                     return;
                 }
     
                 const userDoc = querySnapshot.docs[0];
                 const userData = userDoc.data();
     
-                // The 'secret' for phone login is a PIN, so we construct the password
                 const password = `${secret}${secret}`;
                 
-                signInWithEmailAndPassword(auth, userData.email, password)
-                    .catch(handleAuthError);
+                signInWithEmailAndPassword(auth, userData.email, password).catch(handleAuthError);
             }).catch(error => {
-                 // This catch block is for when the getDocs() query itself fails due to permissions.
                  const contextualError = new FirestorePermissionError({
                     path: 'users',
                     operation: 'list'
                  });
-                 // We are showing the detailed error to the user/agent for debugging purposes.
-                 // In a real production app, you might want a more generic message.
                  toast({
                     title: "Erreur de permission",
-                    description: contextualError.message,
+                    description: `La recherche d'utilisateur par numéro de téléphone a été bloquée par les règles de sécurité. Assurez-vous d'être déconnecté avant de tenter cette action.`,
                     variant: "destructive",
                 });
             });
@@ -388,63 +381,41 @@ function AuthWrapper() {
             return <div className="flex h-screen items-center justify-center">Chargement...</div>;
         }
 
-        const providers = (
-            <AppProviders>
-                <TransactionsProvider alias={userInfo?.alias || ''}>
-                    <BalanceProvider alias={userInfo?.alias || ''}>
-                        <ContactsProvider alias={userInfo?.alias || ''}>
-                            <AvatarProvider alias={userInfo?.alias || ''}>
-                                <VirtualCardProvider alias={userInfo?.alias || ''}>
-                                    <VaultsProvider alias={userInfo?.alias || ''}>
-                                        <TontineProvider alias={userInfo?.alias || ''}>
-                                            <BnplProvider alias={userInfo?.alias || ''}>
-                                                <IslamicFinancingProvider alias={userInfo?.alias || ''}>
-                                                    <RecurringPaymentsProvider alias={userInfo?.alias || ''}>
-                                                        {step === 'dashboard' && userInfo && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
-                                                        {step === 'merchant_dashboard' && userInfo && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
-                                                        {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
-                                                    </RecurringPaymentsProvider>
-                                                </IslamicFinancingProvider>
-                                            </BnplProvider>
-                                        </TontineProvider>
-                                    </VaultsProvider>
-                                </VirtualCardProvider>
-                            </AvatarProvider>
-                        </ContactsProvider>
-                    </BalanceProvider>
-                </TransactionsProvider>
-            </AppProviders>
-        );
-
         if (userInfo && user) {
-            switch(step) {
-                case 'dashboard':
-                case 'merchant_dashboard':
-                case 'admin_dashboard':
-                    return providers;
+            return (
+                 <AppProviders alias={userInfo.alias}>
+                    {step === 'dashboard' && <Dashboard alias={userInfo.alias} userInfo={userInfo} onLogout={handleLogout} />}
+                    {step === 'merchant_dashboard' && <MerchantDashboard userInfo={userInfo} alias={userInfo.alias} onLogout={handleLogout} />}
+                    {step === 'admin_dashboard' && <AdminDashboard onExit={handleLogout} />}
+                 </AppProviders>
+            );
+        }
+
+        // Public onboarding/login flow is wrapped in providers that don't need an alias
+        const publicFlow = () => {
+             switch (step) {
+                case 'demo':
+                    return <OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} />;
+                case 'permissions':
+                    return <PermissionsRequest onPermissionsGranted={handlePermissionsGranted} />;
+                case 'alias':
+                    return <AliasCreation onAliasCreated={handleAliasCreated} />;
+                case 'kyc':
+                    return <KYCForm onKycComplete={handleKycComplete as any} />;
+                case 'pin_creation':
+                    return <PinCreation onPinCreated={handlePinCreated} />;
+                case 'login':
+                    return <LoginForm onLogin={handleLogin} onBack={() => setStep('demo')} />;
                 default:
-                    // Fallback to public flow if authenticated but step is wrong
-                    return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
+                    return <OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} />;
             }
         }
-
-        // Public onboarding/login flow
-        switch (step) {
-            case 'demo':
-                return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
-            case 'permissions':
-                return <PermissionsRequest onPermissionsGranted={handlePermissionsGranted} />;
-            case 'alias':
-                return <AliasCreation onAliasCreated={handleAliasCreated} />;
-            case 'kyc':
-                return <KYCForm onKycComplete={handleKycComplete as any} />;
-            case 'pin_creation':
-                return <PinCreation onPinCreated={handlePinCreated} />;
-            case 'login':
-                return <LoginForm onLogin={handleLogin} onBack={() => setStep('demo')} />;
-            default:
-                return <CmsProvider><OnboardingDemo onStart={handleOnboardingStart} onLogin={handleLoginStart} /></CmsProvider>;
-        }
+        
+        return (
+            <CmsProvider>
+                 {publicFlow()}
+            </CmsProvider>
+        )
     };
   
     return <main className="bg-background min-h-screen">{renderContent()}</main>;
@@ -457,5 +428,6 @@ export default function AuthenticationGate() {
         </FirebaseClientProvider>
     );
 }
+
 
 
