@@ -18,7 +18,7 @@ export async function assessBnplApplication(
     name: 'bnplAssessmentPrompt',
     input: { schema: BnplAssessmentInputSchema },
     output: { schema: BnplAssessmentOutputSchema },
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.0-pro',
     prompt: `Vous êtes un expert en évaluation de crédit pour un service financier en Afrique de l'Ouest, agissant comme un moteur de décision automatisé.
 Analysez la demande de "Credit Marchands" (BNPL) suivante.
 

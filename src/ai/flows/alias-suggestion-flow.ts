@@ -28,7 +28,7 @@ export async function aliasSuggestion(input: AliasSuggestionInput): Promise<Alia
     name: 'aliasSuggestionPrompt',
     input: {schema: AliasSuggestionInputSchema},
     output: {schema: AliasSuggestionOutputSchema},
-    model: 'googleai/gemini-1.5-flash',
+    model: 'googleai/gemini-1.0-pro',
     prompt: `Vous êtes un assistant créatif qui aide les utilisateurs à choisir un alias unique pour un service de paiement en Afrique de l'Ouest.
 L'alias doit être facile à retenir, professionnel mais convivial. Inspirez-vous des noms de services existants comme Wave, Orange Money, Free Money, Wari, Wizall, ou Mixx.
 
