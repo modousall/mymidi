@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
@@ -21,7 +22,8 @@ export type Transaction = {
 };
 
 type TransactionsContextType = {
-  transactions: Transaction[];
+  recentTransactions: Transaction[];
+  historyTransactions: Transaction[];
   isLoading: boolean;
   addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>, forId?: string) => void;
   findPendingTransactionByCode: (code: string) => Transaction | undefined;
@@ -29,8 +31,6 @@ type TransactionsContextType = {
 };
 
 export const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
-
-const allTransactionsStorageKey = 'midi_transactions_all';
 
 type TransactionsProviderProps = {
     children: ReactNode;
@@ -46,33 +46,44 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   const [allLocalTransactions, setAllLocalTransactions] = useState<Transaction[]>([]);
   const [isLocalLoading, setIsLocalLoading] = useState(true);
 
-  // Effect for handling local storage. Now it loads ALL transactions.
-  useEffect(() => {
-      try {
-        const storedTxs = localStorage.getItem(allTransactionsStorageKey);
-        setAllLocalTransactions(storedTxs ? JSON.parse(storedTxs) : []);
-      } catch (e) { 
-        console.error("Failed to read transactions from localStorage", e);
-        setAllLocalTransactions([]);
-      }
-      setIsLocalLoading(false);
-  }, []);
+  const storageKey = targetUserId
+    ? `midi_transactions_${targetUserId}`
+    : null;
 
-  // Effect to save to local storage. Now it saves ALL transactions.
+  // Effect for handling local storage. Now it loads ALL transactions for a specific user.
   useEffect(() => {
-    if (!isLocalLoading) {
+    if (!storageKey) {
+        setAllLocalTransactions([]);
+        setIsLocalLoading(false);
+        return;
+    };
+
+    setIsLocalLoading(true);
+    try {
+      const storedTxs = localStorage.getItem(storageKey);
+      setAllLocalTransactions(storedTxs ? JSON.parse(storedTxs) : []);
+    } catch (e) { 
+      console.error("Failed to read transactions from localStorage", e);
+      setAllLocalTransactions([]);
+    }
+    setIsLocalLoading(false);
+  }, [storageKey]);
+
+  // Effect to save to local storage. Now it saves ALL transactions for a specific user.
+  useEffect(() => {
+    if (!isLocalLoading && storageKey) {
       try {
-        localStorage.setItem(allTransactionsStorageKey, JSON.stringify(allLocalTransactions));
+        localStorage.setItem(storageKey, JSON.stringify(allLocalTransactions));
       } catch (e) {
         console.error("Failed to write transactions to localStorage", e);
       }
     }
-  }, [allLocalTransactions, isLocalLoading]);
+  }, [allLocalTransactions, isLocalLoading, storageKey]);
 
 
   const transactionsForCurrentUser = useMemo(() => {
-      if (!targetUserId || isLocalLoading) return []; // Wait until loaded and user ID is available
-      return allLocalTransactions.filter(tx => tx.userId === targetUserId);
+      if (!targetUserId || isLocalLoading) return []; 
+      return allLocalTransactions;
   }, [allLocalTransactions, targetUserId, isLocalLoading]);
 
 
@@ -89,20 +100,82 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
         userId: txUserId,
     };
 
-    setAllLocalTransactions(prev => [newTx, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    // If we are adding a transaction for the current user, update state
+    if (txUserId === targetUserId) {
+        setAllLocalTransactions(prev => [newTx, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } else {
+        // Otherwise, just update the local storage for the other user in the background
+        const otherUserStorageKey = `midi_transactions_${txUserId}`;
+        try {
+            const otherUserTxsRaw = localStorage.getItem(otherUserStorageKey);
+            const otherUserTxs = otherUserTxsRaw ? JSON.parse(otherUserTxsRaw) : [];
+            const newOtherUserTxs = [newTx, ...otherUserTxs].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            localStorage.setItem(otherUserStorageKey, JSON.stringify(newOtherUserTxs));
+        } catch (e) {
+            console.error(`Failed to update transactions for user ${txUserId}`, e);
+        }
+    }
   };
   
   const findPendingTransactionByCode = (code: string): Transaction | undefined => {
-    // This now searches ALL transactions, which is what we need.
-    return allLocalTransactions.find(tx => tx.status === 'En attente' && tx.reason.includes(code));
+    // This now searches ALL transactions from ALL users stored locally
+    // This is not ideal but works for simulation.
+    // We need to iterate over all possible user storage keys.
+     if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('midi_transactions_')) {
+                try {
+                    const storedTxs = localStorage.getItem(key);
+                    const transactions: Transaction[] = storedTxs ? JSON.parse(storedTxs) : [];
+                    const found = transactions.find(tx => tx.status === 'En attente' && tx.reason.includes(code));
+                    if(found) return found;
+                } catch(e) {
+                    // Ignore parsing errors for other keys
+                }
+            }
+        }
+    }
+    return undefined;
   }
 
   const updateTransactionStatus = (id: string, status: Transaction['status']) => {
-     setAllLocalTransactions(prev => prev.map(tx => tx.id === id ? { ...tx, status } : tx));
+     if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('midi_transactions_')) {
+                 try {
+                    const storedTxs = localStorage.getItem(key);
+                    const transactions: Transaction[] = storedTxs ? JSON.parse(storedTxs) : [];
+                    if(transactions.some(tx => tx.id === id)) {
+                       const updatedTxs = transactions.map(tx => tx.id === id ? { ...tx, status } : tx);
+                       localStorage.setItem(key, JSON.stringify(updatedTxs));
+
+                       // If this is the current user's storage, update state too
+                       if (key === storageKey) {
+                           setAllLocalTransactions(updatedTxs);
+                       }
+                       return;
+                    }
+                } catch(e) {
+                    // Ignore
+                }
+            }
+        }
+    }
   }
 
+  const recentTransactions = useMemo(() => {
+    return transactionsForCurrentUser.slice(0, 5);
+  }, [transactionsForCurrentUser]);
+
+  const historyTransactions = useMemo(() => {
+    return transactionsForCurrentUser;
+  }, [transactionsForCurrentUser]);
+
   const value = { 
-      transactions: transactionsForCurrentUser, 
+      recentTransactions,
+      historyTransactions,
       isLoading: isLocalLoading,
       addTransaction, 
       findPendingTransactionByCode, 

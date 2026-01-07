@@ -28,6 +28,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { cn, formatCurrency } from '@/lib/utils';
 import { parseISO } from 'date-fns';
+import { Skeleton } from './ui/skeleton';
 
 type TransactionHistoryProps = {
   showAll: boolean;
@@ -224,14 +225,44 @@ const TransactionDetailsDialog = ({ transaction }: { transaction: Transaction })
     )
 }
 
+const EmptyState = ({ message, searchTerm }: { message: string, searchTerm?: string }) => (
+    <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg">
+        <Receipt className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h4 className="mt-4 text-lg font-semibold">{message}</h4>
+        <p className="mt-1 text-sm text-muted-foreground">
+            {searchTerm ? `Aucun résultat pour "${searchTerm}"` : "Vos transactions apparaîtront ici."}
+        </p>
+    </div>
+);
+
+const LoadingSkeleton = () => (
+    <div className="space-y-2">
+        {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 p-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-grow space-y-2">
+                    <Skeleton className="h-4 w-3/5" />
+                    <Skeleton className="h-3 w-4/5" />
+                </div>
+                <div className="text-right space-y-2">
+                    <Skeleton className="h-4 w-16" />
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+
 export default function TransactionHistory({ showAll, onShowAll }: TransactionHistoryProps) {
-    const { transactions, isLoading } = useTransactions();
+    const { recentTransactions, historyTransactions, isLoading } = useTransactions();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('all');
 
+    const transactionsToFilter = showAll ? historyTransactions : recentTransactions;
+
     const filteredTransactions = useMemo(() => {
-        if (!transactions) return [];
-        return transactions.filter(tx => {
+        if (!transactionsToFilter) return [];
+        return transactionsToFilter.filter(tx => {
             const searchMatch = searchTerm.toLowerCase() === '' ||
                                 tx.counterparty.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                 tx.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -241,7 +272,7 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
 
             return searchMatch && filterMatch;
         });
-    }, [transactions, searchTerm, activeFilter]);
+    }, [transactionsToFilter, searchTerm, activeFilter]);
 
 
     const transactionsToShow = showAll ? filteredTransactions : filteredTransactions.slice(0, 5);
@@ -294,9 +325,7 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
             </CardHeader>
             <CardContent className="px-0">
                 {isLoading ? (
-                    <div className="flex justify-center items-center h-24">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
+                    <LoadingSkeleton />
                 ) : transactionsToShow.length > 0 ? (
                     <div className="space-y-1">
                         {transactionsToShow.map((tx) => (
@@ -324,15 +353,9 @@ export default function TransactionHistory({ showAll, onShowAll }: TransactionHi
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-10 px-4 border-2 border-dashed rounded-lg">
-                        <Receipt className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h4 className="mt-4 text-lg font-semibold">Aucune transaction</h4>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            {searchTerm ? `Aucun résultat pour "${searchTerm}"` : "Vos transactions apparaîtront ici."}
-                        </p>
-                    </div>
+                    <EmptyState message={showAll ? "Aucune transaction" : "Aucune transaction récente"} searchTerm={searchTerm}/>
                 )}
-                {!showAll && transactions && transactions.length > 5 && (
+                {!showAll && historyTransactions && historyTransactions.length > 5 && (
                     <Button variant="link" className="w-full mt-4 text-primary" onClick={() => onShowAll(true)}>
                         Tout afficher
                     </Button>
