@@ -22,8 +22,11 @@ const redeemSchema = z.object({
 
 type RedeemFormValues = z.infer<typeof redeemSchema>;
 
+type RedeemCodeFormProps = {
+    addTransaction: (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => void;
+};
 
-export default function RedeemCodeForm() {
+export default function RedeemCodeForm({ addTransaction }: RedeemCodeFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [transactionToFinalize, setTransactionToFinalize] = useState<Transaction | null>(null);
   const { toast } = useToast();
@@ -56,9 +59,19 @@ export default function RedeemCodeForm() {
   const onFinalize = () => {
       if (transactionToFinalize) {
           updateTransactionStatus(transactionToFinalize.id, 'Terminé');
+
+          // The merchant receives the money from the client's debit
+          addTransaction({
+              type: 'received',
+              counterparty: `Client ${transactionToFinalize.userId.substring(0,6)}`,
+              reason: `Validation retrait - Code ${transactionToFinalize.reason.split(': ')[1]}`,
+              amount: transactionToFinalize.amount,
+              status: 'Terminé',
+          });
+
           toast({
               title: "Retrait Finalisé !",
-              description: `L'opération de ${formatCurrency(transactionToFinalize.amount)} a été complétée.`
+              description: `L'opération de ${formatCurrency(transactionToFinalize.amount)} a été complétée. Votre compte a été crédité.`
           });
           setTransactionToFinalize(null);
           form.reset();
@@ -75,7 +88,7 @@ export default function RedeemCodeForm() {
             <div className="py-4 space-y-2 text-center">
                 <p className="text-sm text-muted-foreground">Montant à remettre au client</p>
                 <p className="text-4xl font-bold text-primary">{formatCurrency(transactionToFinalize.amount)}</p>
-                <p className="text-sm text-muted-foreground">Client: {transactionToFinalize.counterparty}</p>
+                <p className="text-sm text-muted-foreground">Client: {transactionToFinalize.userId.substring(0,10)}...</p>
             </div>
             <DialogFooter>
                 <Button variant="ghost" onClick={() => setTransactionToFinalize(null)}>Annuler</Button>

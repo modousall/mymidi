@@ -118,7 +118,7 @@ export default function MerchantDashboard({ onLogout, userInfo, alias }: Merchan
     const [activeAction, setActiveAction] = useState<'none' | 'customer_withdrawal'>('none');
     const [paymentLink, setPaymentLink] = useState<string | null>(null);
     const { toast } = useToast();
-    const { users } = useUserManagement();
+    const { addTransaction } = useTransactions();
   
     if (activeAction === 'customer_withdrawal') {
         return (
@@ -211,7 +211,7 @@ export default function MerchantDashboard({ onLogout, userInfo, alias }: Merchan
                                                 <CheckSquare/> Valider un Code
                                             </Button>
                                         </DialogTrigger>
-                                        <RedeemCodeForm />
+                                        <RedeemCodeForm addTransaction={(tx) => addTransaction(tx, alias)} />
                                      </Dialog>
                                 </div>
                             </CardContent>
