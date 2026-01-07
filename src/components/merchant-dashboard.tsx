@@ -37,7 +37,7 @@ type MerchantDashboardProps = {
 
 const KPIs = () => {
     const { balance } = useBalance();
-    const { transactions } = useTransactions();
+    const { historyTransactions: transactions } = useTransactions();
     
     const today = new Date().toISOString().split('T')[0];
     const todaysTransactions = transactions.filter(tx => tx.date.startsWith(today) && tx.type === 'received');
