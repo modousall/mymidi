@@ -42,9 +42,24 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
 
   const targetUserId = forUserId || user?.uid;
 
-  // We will return an empty array to simulate deletion
-  const transactions: Transaction[] = [];
-  const isLoading = false;
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!targetUserId || !firestore) return null;
+    return query(
+      collection(firestore, `users/${targetUserId}/transactions`),
+      orderBy('date', 'desc')
+    );
+  }, [targetUserId, firestore]);
+  
+  const { data: rawTransactions, isLoading } = useCollection<Omit<Transaction, 'id' | 'date'> & { date: any }>(transactionsQuery);
+
+  const transactions = useMemo(() => {
+      if (!rawTransactions) return [];
+      return rawTransactions.map(tx => ({
+          ...tx,
+          // Convert Firestore Timestamp to ISO string if it's an object
+          date: tx.date?.toDate ? tx.date.toDate().toISOString() : tx.date,
+      })) as Transaction[];
+  }, [rawTransactions]);
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
