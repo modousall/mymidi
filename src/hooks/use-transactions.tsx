@@ -3,6 +3,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { v4 as uuidv4 } from "uuid";
 
 export type Transaction = {
   id: string;
@@ -62,7 +63,7 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction = {
         ...transaction,
-        id: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+        id: `TXN-${uuidv4()}`
     };
     setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
   };
