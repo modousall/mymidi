@@ -61,7 +61,7 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction = {
         ...transaction,
-        id: `TXN${Date.now()}-${Math.floor(Math.random() * 1000)}`
+        id: `TXN-${alias}-${Date.now()}-${Math.floor(Math.random() * 1000)}`
     };
     setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
   };
