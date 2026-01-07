@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, HandCoins, FileText, ArrowLeft, Download, AlertTriangle } from 'lucide-react';
+import { BarChart3, HandCoins, FileText, ArrowLeft, Download, AlertTriangle, Loader2 } from 'lucide-react';
 import AdminTransactionAnalysis from "./admin-transaction-analysis";
 import { useBnpl } from "@/hooks/use-bnpl";
 import { useIslamicFinancing } from "@/hooks/use-islamic-financing";
@@ -66,6 +66,7 @@ const FinancingReport = () => {
 }
 
 const RegulatoryReports = () => {
+    const [generating, setGenerating] = useState<string | null>(null);
     
     const reports = [
         { id: 'bceao_usage', name: 'Rapport BCEAO - Utilisation des Services', description: 'Statistiques mensuelles sur l\'émission de monnaie électronique.' },
@@ -73,11 +74,49 @@ const RegulatoryReports = () => {
         { id: 'financial_statements', name: 'États Financiers Trimestriels', description: 'Bilan, compte de résultat et tableau de flux de trésorerie.' },
     ];
     
-    const handleGenerate = (reportName: string) => {
+    const handleGenerate = async (reportId: string, reportName: string) => {
+        setGenerating(reportId);
         toast({
             title: "Génération en cours...",
-            description: `Le rapport "${reportName}" est en cours de préparation (simulation).`,
-        })
+            description: `Le rapport "${reportName}" est en cours de préparation.`,
+        });
+
+        // Simulate data fetching and processing
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Simulate data for CSV
+        const fakeData = [
+            { "Date": "2024-07-01", "Type": "Dépôt", "Montant": 50000, "Source": "Client A" },
+            { "Date": "2024-07-02", "Type": "Retrait", "Montant": 20000, "Source": "Client B" },
+            { "Date": "2024-07-03", "Type": "Commission", "Montant": 150, "Source": "SENELEC" },
+        ];
+
+        try {
+            const Papa = (await import('papaparse')).default;
+            const csv = Papa.unparse(fakeData, { header: true });
+            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${reportId}_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast({
+                title: "Rapport Généré",
+                description: `Le rapport "${reportName}" a été téléchargé.`,
+            });
+        } catch (error) {
+            console.error("CSV generation failed", error);
+            toast({
+                title: "Erreur de génération",
+                description: "Impossible de créer le fichier de rapport.",
+                variant: "destructive"
+            });
+        } finally {
+            setGenerating(null);
+        }
     }
     
     return (
@@ -93,7 +132,18 @@ const RegulatoryReports = () => {
                             <p className="font-semibold">{report.name}</p>
                             <p className="text-sm text-muted-foreground">{report.description}</p>
                         </div>
-                        <Button variant="secondary" onClick={() => handleGenerate(report.name)}>Générer</Button>
+                        <Button 
+                            variant="secondary" 
+                            onClick={() => handleGenerate(report.id, report.name)}
+                            disabled={generating === report.id}
+                        >
+                            {generating === report.id ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                            ) : (
+                                <Download className="mr-2 h-4 w-4"/>
+                            )}
+                            Générer
+                        </Button>
                     </div>
                 ))}
             </CardContent>
