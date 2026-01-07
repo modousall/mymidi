@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -137,12 +136,13 @@ function AuthWrapper() {
         } else {
              // If user is logged out or profile is missing, ensure userInfo is null
             setUserInfo(null);
-            if (user && !userDoc) {
+            if (user && !userDoc && !isLoading) { // Check isLoading again to prevent premature warnings
                 // This can happen briefly during signup, but if it persists, it's a data integrity issue.
                 console.warn("User is authenticated, but no profile document was found. This might be temporary during signup.");
             }
         }
     }, [user, userDoc, isLoading, toast]);
+
 
     const handleLogout = () => {
         logout();
