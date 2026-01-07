@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset implements a user-centric, ownership-based security model.
  * All sensitive user data, including transactions and payment requests, is stored in a private
@@ -79,6 +80,14 @@ service cloud.firestore {
     function isOwnerOfExistingDoc(ownerId) {
       return isOwner(ownerId) && isExistingDoc();
     }
+    
+    /**
+     * Returns true if the request is a query for a user by their phone number for sign-in purposes.
+     * This is a narrow exception to the general rule of not allowing user listing.
+     */
+    function isSigningIn() {
+      return !isSignedIn() && request.method == 'list' && request.query.keys().hasOnly(['where', 'limit']) && request.query.where[0] == ['phoneNumber', '==', request.query.where[2]];
+    }
 
     // ------------------------------------------------------------------------
     // Collection Rules
@@ -89,12 +98,13 @@ service cloud.firestore {
      * @path /users/{userId}
      * @allow (create) An authenticated user can create their own profile document.
      * @allow (get, list) Admins can read any user profile and list all users.
+     * @allow (list) Unauthenticated users can query for a user by phone number to sign in.
      * @deny (get, list) Regular users cannot read other user profiles or list all users.
      * @principle Restricts access to a user's own data tree and prevents user enumeration by non-admins.
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      allow list: if isAdmin() || isSigningIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id || isAdmin();
       allow delete: if isExistingOwner(userId) || isAdmin();
