@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,8 +11,6 @@ import PinCreation from '@/components/pin-creation';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import Dashboard from '@/components/dashboard';
-import AdminDashboard from '@/components/admin-dashboard';
-import MerchantDashboard from '@/components/merchant-dashboard';
 import { AvatarProvider } from '@/hooks/use-avatar';
 import { BalanceProvider } from '@/hooks/use-balance';
 import { ContactsProvider } from '@/hooks/use-contacts';
@@ -30,6 +27,18 @@ import { IslamicFinancingProvider } from '@/hooks/use-islamic-financing';
 import { TreasuryProvider } from '@/hooks/use-treasury-management';
 import { CmsProvider } from '@/hooks/use-cms';
 import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const AdminDashboard = dynamic(() => import('@/components/admin-dashboard'), {
+  loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
+  ssr: false,
+});
+const MerchantDashboard = dynamic(() => import('@/components/merchant-dashboard'), {
+  loading: () => <div className="h-screen w-full flex items-center justify-center"><Skeleton className="h-24 w-1/3" /></div>,
+  ssr: false,
+});
+
 
 type UserInfo = {
   name: string;
