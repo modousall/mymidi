@@ -17,7 +17,6 @@ import Financing from './financing';
 import Epargne from './epargne';
 import WithdrawOptions from './withdraw-options';
 import Paiement from './paiement';
-import { TransactionsProvider } from '@/hooks/use-transactions';
 
 
 type UserInfo = {
@@ -132,9 +131,7 @@ export default function Dashboard({ alias, userInfo, onLogout }: DashboardProps)
   return (
     <div className="flex flex-col min-h-screen bg-background">
         <main className="flex-grow container mx-auto p-4 sm:p-6">
-            <TransactionsProvider alias={alias}>
-              {renderContent()}
-            </TransactionsProvider>
+            {renderContent()}
         </main>
     </div>
   );
