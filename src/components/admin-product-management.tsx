@@ -18,8 +18,7 @@ import { Switch } from './ui/switch';
 import { toast } from '@/hooks/use-toast';
 import AdminProductDetail from './admin-product-detail';
 import { formatCurrency } from '@/lib/utils';
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, collectionGroup } from 'firebase/firestore';
+import { useTransactions } from "@/hooks/use-transactions";
 import type { Transaction } from '@/hooks/use-transactions';
 
 const productSchema = z.object({
@@ -234,7 +233,7 @@ const ProductTable = ({
     )
 }
 
-export default function AdminProductManagement({ onBack }: { onBack: () => void }) {
+function ProductManagementInner({ onBack }: { onBack: () => void }) {
   const { 
       billers, addBiller, removeBiller, updateBiller, settleBiller,
       mobileMoneyOperators, addMobileMoneyOperator, removeMobileMoneyOperator, updateMobileMoneyOperator, settleMobileMoneyOperator
@@ -242,9 +241,8 @@ export default function AdminProductManagement({ onBack }: { onBack: () => void 
   
   const [selectedProduct, setSelectedProduct] = useState<ProductWithBalance | null>(null);
 
-  const firestore = useFirestore();
-  const transactionsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'transactions')), [firestore]);
-  const { data: allTransactions } = useCollection<Transaction>(transactionsQuery);
+  // We can use the useTransactions hook here because the parent component now has the provider
+  const { transactions: allTransactions } = useTransactions();
 
   const productsWithBalance = useMemo(() => {
     const allProducts = [...billers, ...mobileMoneyOperators];
@@ -318,4 +316,14 @@ export default function AdminProductManagement({ onBack }: { onBack: () => void 
       />
     </div>
   );
+}
+
+export default function AdminProductManagement({ onBack }: { onBack: () => void }) {
+    // This component now needs access to transactions for balance calculation
+    // So we wrap the inner component in the TransactionsProvider
+    return (
+        <TransactionsProvider>
+            <ProductManagementInner onBack={onBack} />
+        </TransactionsProvider>
+    );
 }

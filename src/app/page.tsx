@@ -109,56 +109,42 @@ const allMockTransactions: Transaction[] = [
 // A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ account, children }: { account: Account, children: React.ReactNode }) => {
     
-    const userManagementValue = {
-        users: allMockUsers,
-        changeUserPin: (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
-            if (oldPin.length === 4 && /^\d+$/.test(oldPin)) {
-                console.log(`PIN for ${alias} verified successfully (simulation).`);
-                return { success: true, message: "PIN vérifié (simulation)." };
-            }
-            console.warn("PIN verification failed in simulation mode.");
-            return {success: false, message: "PIN incorrect (simulation)."};
-        }
-    };
-
     return (
-        <UserManagementContext.Provider value={userManagementValue}>
           <AccountProvider account={account}>
             <TransactionsProvider>
-                <TreasuryProvider>
-                    <CmsProvider>
-                        <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>
-                            <FeatureFlagProvider>
-                                <RoleProvider>
-                                    <MonthlyBudgetProvider>
-                                        <BalanceProvider alias={account.accountId}>
-                                            <BnplProvider alias={account.accountId}>
-                                                <IslamicFinancingProvider alias={account.accountId}>
-                                                    <AvatarProvider alias={account.accountId}>
-                                                        <ContactsProvider alias={account.accountId}>
-                                                            <VirtualCardProvider alias={account.accountId}>
-                                                                <VaultsProvider alias={account.accountId}>
-                                                                    <TontineProvider alias={account.accountId}>
-                                                                        <RecurringPaymentsProvider alias={account.accountId}>
+                <CmsProvider>
+                    <ProductProvider>
+                        <FeatureFlagProvider>
+                            <RoleProvider>
+                                <MonthlyBudgetProvider>
+                                    <BalanceProvider alias={account.accountId}>
+                                        <BnplProvider alias={account.accountId}>
+                                            <IslamicFinancingProvider alias={account.accountId}>
+                                                <AvatarProvider alias={account.accountId}>
+                                                    <ContactsProvider alias={account.accountId}>
+                                                        <VirtualCardProvider alias={account.accountId}>
+                                                            <VaultsProvider alias={account.accountId}>
+                                                                <TontineProvider alias={account.accountId}>
+                                                                    <RecurringPaymentsProvider alias={account.accountId}>
+                                                                        <TreasuryProvider>
                                                                             {children}
-                                                                        </RecurringPaymentsProvider>
-                                                                    </TontineProvider>
-                                                                </VaultsProvider>
-                                                            </VirtualCardProvider>
-                                                        </ContactsProvider>
-                                                    </AvatarProvider>
-                                                </IslamicFinancingProvider>
-                                            </BnplProvider>
-                                        </BalanceProvider>
-                                    </MonthlyBudgetProvider>
-                                </RoleProvider>
-                            </FeatureFlagProvider>
-                        </ProductProvider>
-                    </CmsProvider>
-                </TreasuryProvider>
+                                                                        </TreasuryProvider>
+                                                                    </RecurringPaymentsProvider>
+                                                                </TontineProvider>
+                                                            </VaultsProvider>
+                                                        </VirtualCardProvider>
+                                                    </ContactsProvider>
+                                                </AvatarProvider>
+                                            </IslamicFinancingProvider>
+                                        </BnplProvider>
+                                    </BalanceProvider>
+                                </MonthlyBudgetProvider>
+                            </RoleProvider>
+                        </FeatureFlagProvider>
+                    </ProductProvider>
+                </CmsProvider>
             </TransactionsProvider>
           </AccountProvider>
-        </UserManagementContext.Provider>
     )
 }
 
@@ -203,6 +189,18 @@ function SimulatedApp() {
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
     const { toast } = useToast();
     
+    const userManagementValue = {
+        users: allMockUsers,
+        changeUserPin: (alias: string, oldPin: string, newPin:string) : {success: boolean, message: string} => {
+            if (oldPin.length === 4 && /^\d+$/.test(oldPin)) {
+                console.log(`PIN for ${alias} verified successfully (simulation).`);
+                return { success: true, message: "PIN vérifié (simulation)." };
+            }
+            console.warn("PIN verification failed in simulation mode.");
+            return {success: false, message: "PIN incorrect (simulation)."};
+        }
+    };
+
     const handleLogout = () => {
         setUserInfo(null);
         toast({ title: "Déconnexion simulée", description: "Vous êtes revenu au sélecteur de profil." });
@@ -238,7 +236,16 @@ function SimulatedApp() {
             case 'admin':
             case 'superadmin':
             case 'support':
-                 return <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />;
+                // Admin dashboard needs its own set of providers, but not tied to a single account
+                 return (
+                    <ProductProvider>
+                        <RoleProvider>
+                            <FeatureFlagProvider>
+                                <AdminDashboard onExit={handleLogout} allUsers={allMockUsers} allTransactions={allMockTransactions} />
+                            </FeatureFlagProvider>
+                        </RoleProvider>
+                    </ProductProvider>
+                 );
             case 'user':
             default:
                  account = { accountId: `acc_user_${userInfo.id}`, type: 'user' };
@@ -251,13 +258,15 @@ function SimulatedApp() {
     };
   
     return (
-        <main className="bg-background min-h-screen">
-            {userInfo ? renderDashboard() : (
-                <CmsProvider>
-                    <SimulatorSelector onSelectProfile={handleSelectProfile} />
-                </CmsProvider>
-            )}
-        </main>
+         <UserManagementContext.Provider value={userManagementValue}>
+            <main className="bg-background min-h-screen">
+                {userInfo ? renderDashboard() : (
+                    <CmsProvider>
+                        <SimulatorSelector onSelectProfile={handleSelectProfile} />
+                    </CmsProvider>
+                )}
+            </main>
+        </UserManagementContext.Provider>
     );
 }
 

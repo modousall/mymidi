@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { toast } from './use-toast';
 import type { Transaction } from './use-transactions';
 import { formatCurrency } from '@/lib/utils';
+import { useTransactions } from './use-transactions';
 
 export type ProductItem = {
     id: string;
@@ -51,13 +52,13 @@ const operatorsStorageKey = 'midi_product_operators';
 
 type ProductProviderProps = { 
     children: ReactNode;
-    addSettlementTransaction: (transaction: Omit<Transaction, 'id'>) => void;
 }
 
-export const ProductProvider = ({ children, addSettlementTransaction }: ProductProviderProps) => {
+export const ProductProvider = ({ children }: ProductProviderProps) => {
   const [billers, setBillers] = useState<ProductItem[]>([]);
   const [mobileMoneyOperators, setMobileMoneyOperators] = useState<ProductItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const transactionsContext = useContext(TransactionsContext);
 
   useEffect(() => {
     try {
@@ -110,13 +111,12 @@ export const ProductProvider = ({ children, addSettlementTransaction }: ProductP
   
   const handleSettle = (products: ProductItem[], id: string, amount: number) => {
       const product = products.find(p => p.id === id);
-      if (!product) return;
+      if (!product || !transactionsContext) return;
       
-      addSettlementTransaction({
+      transactionsContext.addTransaction({
         type: 'versement',
         counterparty: `Règlement Partenaire`,
         reason: `Règlement pour ${product.name}`,
-        date: new Date().toISOString(),
         amount: amount,
         status: 'Terminé',
       });
