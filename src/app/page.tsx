@@ -344,37 +344,18 @@ function AuthWrapper() {
             }
         };
     
-        if (isEmail) {
-            signInWithEmailAndPassword(auth, loginIdentifier, secret).catch(handleAuthError);
-        } else {
-            const usersRef = collection(firestore, 'users');
-            const q = query(usersRef, where("phoneNumber", "==", loginIdentifier));
-    
-            getDocs(q).then(querySnapshot => {
-                if (querySnapshot.empty) {
-                    toast({ title: "Alias non trouvé", description: "Aucun utilisateur trouvé avec ce numéro de téléphone.", variant: "destructive" });
-                    return;
-                }
-    
-                const userDoc = querySnapshot.docs[0];
-                const userData = userDoc.data();
-    
-                // If the secret is a PIN, it needs to be doubled to match the stored password.
-                const password = secret.length === 4 ? `${secret}${secret}` : secret;
-                
-                signInWithEmailAndPassword(auth, userData.email, password).catch(handleAuthError);
-            }).catch(error => {
-                 const contextualError = new FirestorePermissionError({
-                    path: 'users',
-                    operation: 'list'
-                 });
-                 toast({
-                    title: "Erreur de permission",
-                    description: `La recherche d'utilisateur par numéro de téléphone a été bloquée par les règles de sécurité. ${error.message}`,
-                    variant: "destructive",
-                });
+        if (!isEmail) {
+            toast({
+                title: "Connexion par e-mail requise",
+                description: "Veuillez vous connecter en utilisant votre adresse e-mail.",
+                variant: "destructive",
             });
+            return;
         }
+
+        // Always assume it's an email for login
+        const password = secret.length === 4 ? `${secret}${secret}` : secret;
+        signInWithEmailAndPassword(auth, loginIdentifier, password).catch(handleAuthError);
     }
   
     const renderContent = () => {

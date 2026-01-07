@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from 'react';
@@ -43,11 +44,11 @@ export default function LoginForm({ onLogin, onBack }: LoginFormProps) {
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <Label htmlFor="identifier-login">E-mail ou Alias</Label>
+                            <Label htmlFor="identifier-login">E-mail</Label>
                             <Input
                                 id="identifier-login"
-                                type="text"
-                                placeholder="Entrez votre e-mail ou alias"
+                                type="email"
+                                placeholder="Entrez votre e-mail"
                                 value={identifier}
                                 onChange={(e) => setIdentifier(e.target.value)}
                                 required
