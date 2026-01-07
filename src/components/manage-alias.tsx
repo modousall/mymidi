@@ -33,30 +33,14 @@ export default function ManageAlias({ alias, onLogout }: ManageAliasProps) {
 
   const handleDeleteAlias = () => {
     setIsDeleting(true);
-    // Simulate API call to delete alias
+    // This action is very destructive and in a real app would require more steps.
+    // For this prototype, it will log out, which effectively "deletes" the session.
     setTimeout(() => {
         toast({
-            title: "Compte supprimé",
-            description: "Votre compte a été supprimé avec succès.",
+            title: "Compte supprimé (simulation)",
+            description: "Votre compte a été supprimé de cet appareil.",
         });
-        // Clear all data for this specific user from local storage
-        localStorage.removeItem(`midi_user_${alias}`);
-        localStorage.removeItem(`midi_onboarded_${alias}`);
-        localStorage.removeItem(`midi_avatar_${alias}`);
-        localStorage.removeItem(`midi_balance_${alias}`);
-        localStorage.removeItem(`midi_transactions_${alias}`);
-        localStorage.removeItem(`midi_contacts_${alias}`);
-        localStorage.removeItem(`midi_virtual_card_${alias}`);
-        localStorage.removeItem(`midi_virtual_card_txs_${alias}`);
-        localStorage.removeItem(`midi_tontines_${alias}`);
-        localStorage.removeItem(`midi_vaults_${alias}`);
-
-        // If this was the last logged in user, clear that too
-        if (localStorage.getItem('midi_last_alias') === alias) {
-            localStorage.removeItem('midi_last_alias');
-        }
-        
-        onLogout(); // This will reset the app state and nav to demo
+        onLogout(); 
         setIsDeleting(false);
     }, 1500);
   };

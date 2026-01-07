@@ -2,7 +2,6 @@
 
 "use client";
 
-import { useUserManagement, type ManagedUserWithDetails } from "@/hooks/use-user-management";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -16,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AdminCreateUserForm from "./admin-create-user-form";
 import { TransactionsProvider } from "@/hooks/use-transactions";
 import { formatCurrency } from "@/lib/utils";
+// Note: useUserManagement is removed, data needs to come from a new source e.g. a global user provider or API call
+// For now, we will mock or disable functionality that depends on the full user list.
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
     superadmin: 'destructive',
@@ -32,9 +33,12 @@ const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 
 
 
 export default function AdminUserManagement() {
-    const { users, refreshUsers } = useUserManagement();
+    // MOCK DATA: Replace with actual data fetching logic from Firestore
+    const users: any[] = []; 
+    const refreshUsers = () => console.log("Refreshing users...");
+
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedUser, setSelectedUser] = useState<ManagedUserWithDetails | null>(null);
+    const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const filteredUsers = useMemo(() => {
@@ -45,7 +49,7 @@ export default function AdminUserManagement() {
         );
     }, [users, searchTerm]);
     
-    const handleUserSelect = (user: ManagedUserWithDetails) => {
+    const handleUserSelect = (user: any) => {
         setSelectedUser(user);
     }
     
@@ -156,5 +160,3 @@ export default function AdminUserManagement() {
         </TransactionsProvider>
     )
 }
-
-    

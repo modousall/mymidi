@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useUserManagement } from '@/hooks/use-user-management';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 const userSchema = z.object({
   name: z.string().min(2, "Le nom est requis."),
@@ -33,7 +34,7 @@ type AdminCreateUserFormProps = {
 
 export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['support', 'admin'] }: AdminCreateUserFormProps) {
     const { toast } = useToast();
-    const { addUser } = useUserManagement();
+    const auth = useAuth();
 
     const form = useForm<UserFormValues>({
         resolver: zodResolver(userSchema),
@@ -42,22 +43,22 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
 
     const isMerchant = form.watch('role') === 'merchant';
 
-    const onSubmit = (values: UserFormValues) => {
-        const result = addUser({
-            ...values,
-            role: values.role as 'support' | 'admin' | 'merchant',
-        });
-
-        if (result.success) {
-            toast({
+    const onSubmit = async (values: UserFormValues) => {
+        // This is a simplified creation for admins. We're creating a Firebase Auth user
+        // but not a full Firestore profile, which is typically created on user onboarding.
+        // A more robust system would use Firebase Functions to create the full user profile.
+        try {
+            const password = `${values.pincode}${values.pincode}`; // Demo password logic
+            await createUserWithEmailAndPassword(auth, values.email, password);
+             toast({
                 title: "Utilisateur Créé",
-                description: `Le compte pour ${values.name} a été créé avec succès.`
+                description: `Le compte pour ${values.name} a été créé dans Firebase Auth.`
             });
             onUserCreated();
-        } else {
-            toast({
+        } catch (error: any) {
+             toast({
                 title: "Erreur de création",
-                description: result.message,
+                description: error.message || "Impossible de créer le compte.",
                 variant: "destructive",
             });
         }
@@ -155,5 +156,3 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
         </Form>
     );
 }
-
-    

@@ -13,10 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { formatCurrency } from '@/lib/utils';
-import { useUserManagement, type ManagedUser } from '@/hooks/use-user-management';
 import QrCodeDisplay from './qr-code-display';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
+// Note: useUserManagement is removed, data needs to come from a new source.
 
 const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
   loading: () => <div className="flex items-center justify-center h-48"><Skeleton className="h-32 w-32" /></div>,
@@ -38,13 +38,13 @@ type PicashProps = {
 
 export default function PICASH({ onBack, userInfo }: PicashProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [operationDetails, setOperationDetails] = useState<{amount: number, client: ManagedUser} | null>(null);
+  const [operationDetails, setOperationDetails] = useState<{amount: number, client: any} | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannedClient, setScannedClient] = useState<ManagedUser | null>(null);
+  const [scannedClient, setScannedClient] = useState<any | null>(null);
   const { toast } = useToast();
-  const { users } = useUserManagement();
+  // MOCK DATA: Replace with actual data fetching logic from Firestore
+  const users: any[] = [];
   
-
   const form = useForm<PicashFormValues>({
     resolver: zodResolver(picashFormSchema),
     defaultValues: {
@@ -58,45 +58,10 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
         return;
     }
     
-    const clientFromDb = users.find(u => u.alias === scannedClient.alias);
-    if (!clientFromDb || values.amount > clientFromDb.balance) {
-        toast({ title: "Solde client insuffisant", description: "Le solde du client est insuffisant pour ce retrait.", variant: "destructive" });
-        return;
-    }
-
-    // Simulate multi-account transaction by directly manipulating localStorage
-    const merchantAlias = userInfo.name; // Using name as alias for display
+    // In a real app, this logic would be a single atomic backend transaction
+    // For now, we simulate what would happen.
+    console.log(`Simulating withdrawal: ${values.amount} for ${scannedClient.name} by ${userInfo.name}`);
     
-    // 1. Debit the client
-    const clientBalanceKey = `midi_balance_${scannedClient.alias}`;
-    const clientNewBalance = clientFromDb.balance - values.amount;
-    localStorage.setItem(clientBalanceKey, JSON.stringify(clientNewBalance));
-    
-    // 2. Add transaction to client's history
-    const clientTxKey = `midi_transactions_${scannedClient.alias}`;
-    const clientTxs = JSON.parse(localStorage.getItem(clientTxKey) || '[]');
-    const clientNewTx = {
-        id: `TXN${Date.now()}`, type: 'sent', counterparty: `Retrait chez ${merchantAlias}`,
-        reason: 'Retrait d\'argent', amount: values.amount, date: new Date().toISOString(), status: 'Terminé'
-    };
-    localStorage.setItem(clientTxKey, JSON.stringify([clientNewTx, ...clientTxs]));
-    
-    // 3. Credit the merchant
-    const merchantBalanceKey = `midi_balance_${merchantAlias}`;
-    const merchantCurrentBalance = JSON.parse(localStorage.getItem(merchantBalanceKey) || '0');
-    const newMerchantBalance = merchantCurrentBalance + values.amount;
-    localStorage.setItem(merchantBalanceKey, JSON.stringify(newMerchantBalance));
-
-    // 4. Add transaction to merchant's history
-    const merchantTxKey = `midi_transactions_${merchantAlias}`;
-    const merchantTxs = JSON.parse(localStorage.getItem(merchantTxKey) || '[]');
-    const merchantNewTx = {
-      id: `TXN${Date.now()+1}`, type: "received", counterparty: `Retrait pour ${scannedClient.name}`,
-      reason: `Service de retrait cash`, amount: values.amount,
-      date: new Date().toISOString(), status: 'Terminé'
-    };
-    localStorage.setItem(merchantTxKey, JSON.stringify([merchantNewTx, ...merchantTxs]));
-
     setOperationDetails({ amount: values.amount, client: scannedClient });
     toast({ title: 'Opération réussie', description: `Vous avez été crédité de ${formatCurrency(values.amount)}.` });
   }

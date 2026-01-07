@@ -13,7 +13,6 @@ import { Input } from './ui/input';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import AdminUserDetail from './admin-user-detail';
-import { useUserManagement, type ManagedUserWithDetails } from '@/hooks/use-user-management';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import { formatCurrency } from '@/lib/utils';
 import FinancingRequestDetails from './financing-request-details';
@@ -29,8 +28,7 @@ const statusConfig: Record<FinancingStatus, { text: string; badgeVariant: 'defau
 export default function AdminFinancingManagement() {
     const { allRequests, updateRequestStatus } = useIslamicFinancing();
     const [searchTerm, setSearchTerm] = useState('');
-    const { users, refreshUsers } = useUserManagement();
-    const [selectedUser, setSelectedUser] = useState<ManagedUserWithDetails | null>(null);
+    const [selectedUser, setSelectedUser] = useState<any | null>(null);
 
     const filteredRequests = useMemo(() => {
         return allRequests.filter(req => 
@@ -43,14 +41,16 @@ export default function AdminFinancingManagement() {
     };
 
     const handleUserSelect = (alias: string) => {
-        const userToView = users.find(u => u.alias === alias);
-        if (userToView) {
-            setSelectedUser(userToView);
-        }
+        // This functionality needs to be adapted to fetch user details from Firebase/backend
+        console.log("User selection from this view is not fully implemented yet.");
+        // const userToView = users.find(u => u.alias === alias);
+        // if (userToView) {
+        //     setSelectedUser(userToView);
+        // }
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={() => setSelectedUser(null)} onUpdate={refreshUsers} />;
+        return <AdminUserDetail user={selectedUser} onBack={() => setSelectedUser(null)} onUpdate={() => {}} />;
     }
 
     return (

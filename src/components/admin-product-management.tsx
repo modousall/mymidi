@@ -3,7 +3,6 @@
 
 import { useState, useMemo } from 'react';
 import { useProductManagement, type ProductItem } from '@/hooks/use-product-management';
-import { useUserManagement } from '@/hooks/use-user-management';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -19,6 +18,7 @@ import { Switch } from './ui/switch';
 import { toast } from '@/hooks/use-toast';
 import AdminProductDetail from './admin-product-detail';
 import { formatCurrency } from '@/lib/utils';
+// Note: useUserManagement is removed, data needs to come from a new source.
 
 const productSchema = z.object({
   id: z.string().optional(),
@@ -238,8 +238,10 @@ export default function AdminProductManagement({ onBack }: { onBack: () => void 
       mobileMoneyOperators, addMobileMoneyOperator, removeMobileMoneyOperator, updateMobileMoneyOperator, settleMobileMoneyOperator
   } = useProductManagement();
   
-  const { usersWithTransactions } = useUserManagement();
   const [selectedProduct, setSelectedProduct] = useState<ProductWithBalance | null>(null);
+
+  // MOCK DATA: Replace with actual data fetching logic for all user transactions
+  const usersWithTransactions: any[] = [];
 
   const productsWithBalance = useMemo(() => {
     const allProducts = [...billers, ...mobileMoneyOperators];

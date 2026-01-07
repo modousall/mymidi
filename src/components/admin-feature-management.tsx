@@ -3,7 +3,6 @@
 
 import { useMemo, useState } from 'react';
 import { useFeatureFlags, type Feature } from '@/hooks/use-feature-flags';
-import { useUserManagement } from '@/hooks/use-user-management';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
@@ -11,6 +10,8 @@ import { CreditCard, Users, Clock, PiggyBank, Wallet, Handshake, HandCoins } fro
 import AdminFeatureDetail from './admin-feature-detail';
 import AdminProductManagement from './admin-product-management';
 import { formatCurrency } from '@/lib/utils';
+// Note: useUserManagement is removed. KPIs will be disabled for now.
+// A new data source is needed for admin-level user aggregation.
 
 const KPICard = ({ title, value, icon, isEnabled, onToggle, description, featureKey, onClick }: { title: string, value: string, icon: JSX.Element, isEnabled?: boolean, onToggle?: (feature: Feature, value: boolean) => void, description: string, featureKey?: Feature, onClick?: () => void }) => (
     <Card className={`flex flex-col ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`} onClick={onClick}>
@@ -41,24 +42,16 @@ const KPICard = ({ title, value, icon, isEnabled, onToggle, description, feature
 
 export default function AdminFeatureManagement() {
   const { flags, setFlag } = useFeatureFlags();
-  const { users } = useUserManagement();
-
   const [activeView, setActiveView] = useState<'overview' | 'featureDetail' | 'billers'>('overview');
   const [selectedFeature, setSelectedFeature] = useState<'mainBalance' | 'vaults' | 'virtualCards' | 'tontine' | null>(null);
 
-  const kpis = useMemo(() => {
-    const totalMainBalance = users.reduce((sum, user) => sum + user.balance, 0);
-    const totalVirtualCardBalance = users.reduce((sum, user) => sum + (user.virtualCard?.balance || 0), 0);
-    const totalVaultsBalance = users.reduce((sum, user) => sum + user.vaults.reduce((vaultSum, vault) => vaultSum + vault.balance, 0), 0);
-    const totalTontineValue = users.reduce((sum, user) => sum + user.tontines.reduce((tontineSum, tontine) => tontineSum + (tontine.amount * tontine.participants.length), 0), 0);
-    
-    return {
-        mainBalance: totalMainBalance,
-        virtualCards: totalVirtualCardBalance,
-        vaults: totalVaultsBalance,
-        tontine: totalTontineValue,
-    }
-  }, [users]);
+  // KPIs are disabled as they depended on the removed useUserManagement hook.
+  const kpis = {
+    mainBalance: 0,
+    virtualCards: 0,
+    vaults: 0,
+    tontine: 0,
+  }
   
   const allProducts = [
     { featureKey: 'mainBalance', title: "Comptes Principaux", value: formatCurrency(kpis.mainBalance), icon: <Wallet/>, description: "Somme de tous les soldes principaux des utilisateurs.", isToggleable: false },
