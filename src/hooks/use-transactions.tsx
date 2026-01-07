@@ -42,26 +42,9 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
 
   const targetUserId = forUserId || user?.uid;
 
-  const transactionsQuery = useMemoFirebase(() => {
-    if (!targetUserId || !firestore) return null;
-    return query(
-        collection(firestore, `users/${targetUserId}/transactions`), 
-        orderBy('date', 'desc')
-    );
-  }, [targetUserId, firestore]);
-
-  const { data: transactions, isLoading } = useCollection<Omit<Transaction, 'id'| 'date' | 'userId'> & { date: any }>(transactionsQuery as any);
-
-  const formattedTransactions = useMemo(() => {
-    if (!transactions || !targetUserId) return [];
-    return transactions.map(tx => ({
-        ...tx,
-        id: tx.id,
-        userId: targetUserId,
-        // The date from Firestore is a Timestamp object, convert it to ISO string
-        date: tx.date?.toDate ? tx.date.toDate().toISOString() : new Date().toISOString(),
-    }));
-  }, [transactions, targetUserId]);
+  // We will return an empty array to simulate deletion
+  const transactions: Transaction[] = [];
+  const isLoading = false;
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
@@ -86,7 +69,7 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   };
   
   const findPendingTransactionByCode = (code: string): Transaction | undefined => {
-    return formattedTransactions.find(tx => tx.status === 'En attente' && tx.reason.includes(code));
+    return transactions.find(tx => tx.status === 'En attente' && tx.reason.includes(code));
   }
 
   const updateTransactionStatus = (id: string, status: Transaction['status']) => {
@@ -104,7 +87,7 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   }
 
   const value = { 
-      transactions: formattedTransactions, 
+      transactions: transactions, 
       isLoading,
       addTransaction, 
       findPendingTransactionByCode, 
