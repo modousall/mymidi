@@ -34,11 +34,13 @@ const useAdminData = () => {
         return usersData.map(u => ({ ...u, id: u.id, name: `${u.firstName} ${u.lastName}` })) as ManagedUser[];
     }, [usersData]);
 
+    // This is a collection group query, which requires specific security rules and indexes.
     const transactionsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
         return query(collectionGroup(firestore, 'transactions'));
     }, [firestore]);
-    const { data: allTransactions, isLoading: isLoadingTransactions, error: transactionsError } = useCollection<Transaction>(transactionsQuery as any);
+
+    const { data: allTransactions, isLoading: isLoadingTransactions, error: transactionsError } = useCollection<Transaction>(transactionsQuery);
 
     return {
         users: users || [],

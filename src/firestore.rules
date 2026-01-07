@@ -114,15 +114,14 @@ service cloud.firestore {
       /**
        * @description Controls access to a user's transaction history.
        * @path /users/{userId}/transactions/{transactionId}
-       * @allow (get, list) A user can read transactions from their own history. Admins can also read them.
+       * @allow (get, list) A user can read their own transactions. An admin can read any user's transactions.
        * @deny (list) A user cannot list transactions belonging to another user.
        * @principle Enforces path-based ownership for a user's denormalized data, with admin override.
        */
       match /transactions/{transactionId} {
         allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && (request.resource.data.senderId == userId || request.resource.data.receiverId == userId);
-        allow update: if isExistingOwner(userId) || isAdmin();
-        allow delete: if isExistingOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update, delete: if isOwner(userId) || isAdmin();
       }
 
       /**
