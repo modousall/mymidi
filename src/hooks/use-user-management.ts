@@ -211,7 +211,7 @@ export const useUserManagement = () => {
       // Update Transactions
       const currentTxsStr = localStorage.getItem(txKey);
       const currentTxs = currentTxsStr ? JSON.parse(currentTxsStr) : [];
-      const newTx = { ...transaction, id: `TXN${Date.now()}` };
+      const newTx = { ...transaction, id: `TXN-${Date.now()}-${Math.random()}` };
       localStorage.setItem(txKey, JSON.stringify([newTx, ...currentTxs]));
 
       // This will trigger the global state update
