@@ -33,7 +33,7 @@ export async function paymentSecurityAssistant(input: PaymentSecurityAssistantIn
     name: 'paymentSecurityAssistantPrompt',
     input: {schema: PaymentSecurityAssistantInputSchema},
     output: {schema: PaymentSecurityAssistantOutputSchema},
-    model: 'googleai/gemini-1.0-pro',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `Vous êtes un assistant de sécurité des paiements intelligent. Votre rôle est d'analyser les détails d'une transaction de paiement et de fournir des suggestions de sécurité à l'utilisateur pour l'aider à éviter les escroqueries ou les paiements incorrects.
 
 Analysez les détails du destinataire et de la transaction suivants:

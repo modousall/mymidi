@@ -16,7 +16,7 @@ export async function islamicFinancingAssessment(
     name: 'islamicFinancingAssessmentPrompt',
     input: { schema: IslamicFinancingInputSchema },
     output: { schema: IslamicFinancingOutputSchema },
-    model: 'googleai/gemini-1.0-pro',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `Vous êtes un expert en financement islamique (Mourabaha), agissant comme un moteur de décision automatisé.
 Analysez la demande de financement suivante.
 
