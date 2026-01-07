@@ -15,7 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./ui/form";
 import { Input } from "./ui/input";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, TransactionsProvider } from "@/hooks/use-transactions";
 import MerchantCreditProposalForm from "./merchant-credit-proposal-form";
 import PICASH from "./picash";
 import { useToast } from "@/hooks/use-toast";
