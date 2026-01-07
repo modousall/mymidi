@@ -165,6 +165,12 @@ function SimulatedApp() {
         toast({ title: "Déconnexion simulée", description: "Vous êtes revenu au sélecteur de profil." });
     }
     
+    const handleSelectProfile = (profile: UserInfo) => {
+        // In simulation, we store the alias to persist data across reloads
+        localStorage.setItem('midi_last_alias', profile.alias);
+        setUserInfo(profile);
+    }
+    
     const renderDashboard = () => {
         if (!userInfo) return null;
         
@@ -189,7 +195,7 @@ function SimulatedApp() {
                 </AppProviders>
             ) : (
                 <CmsProvider>
-                    <SimulatorSelector onSelectProfile={setUserInfo} />
+                    <SimulatorSelector onSelectProfile={handleSelectProfile} />
                 </CmsProvider>
             )}
         </main>

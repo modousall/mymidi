@@ -44,54 +44,64 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
   const targetUserId = forUserId || user?.uid;
 
   const transactionsQuery = useMemoFirebase(() => {
-    if (!targetUserId || !firestore) return null;
+    // Only run query if there's a REAL authenticated user. forUserId is for local simulation.
+    if (!user || !targetUserId || !firestore) return null;
     return query(
       collection(firestore, `users/${targetUserId}/transactions`),
       orderBy('date', 'desc')
     );
-  }, [targetUserId, firestore]);
+  }, [targetUserId, firestore, user]);
   
-  const { data: rawTransactions, isLoading: isFirebaseLoading } = useCollection<Omit<Transaction, 'id' | 'date'> & { date: any }>(transactionsQuery);
+  const { data: rawTransactions, isLoading: isFirebaseLoading, error: firebaseError } = useCollection<Omit<Transaction, 'id' | 'date'> & { date: any }>(transactionsQuery);
   
   const [localTransactions, setLocalTransactions] = useState<Transaction[]>([]);
   const [isLocalLoading, setIsLocalLoading] = useState(true);
 
   // Effect for handling local storage in simulation mode
   useEffect(() => {
-    if (forUserId && !user) { // Simulation mode
+    // This runs only in simulation mode (forUserId is provided AND there's no real Firebase user)
+    if (forUserId && !user) {
       const storageKey = `midi_transactions_${forUserId}`;
       try {
         const storedTxs = localStorage.getItem(storageKey);
-        if (storedTxs) {
-          setLocalTransactions(JSON.parse(storedTxs));
-        }
-      } catch (e) { console.error(e); }
+        setLocalTransactions(storedTxs ? JSON.parse(storedTxs) : []);
+      } catch (e) { 
+        console.error("Failed to read transactions from localStorage", e);
+        setLocalTransactions([]);
+      }
       setIsLocalLoading(false);
     }
   }, [forUserId, user]);
 
+  // Effect to save to local storage in simulation mode
   useEffect(() => {
-    if (forUserId && !user && !isLocalLoading) { // Simulation mode
+    if (forUserId && !user && !isLocalLoading) {
       const storageKey = `midi_transactions_${forUserId}`;
-      localStorage.setItem(storageKey, JSON.stringify(localTransactions));
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(localTransactions));
+      } catch (e) {
+        console.error("Failed to write transactions to localStorage", e);
+      }
     }
   }, [localTransactions, forUserId, user, isLocalLoading]);
 
 
   const transactions = useMemo(() => {
-      if (forUserId && !user) { // Simulation mode
+      // If in simulation mode, always use local transactions
+      if (forUserId && !user) {
           return localTransactions;
       }
+      // If in real mode, use Firestore data
       if (!rawTransactions) return [];
       return rawTransactions.map(tx => ({
           ...tx,
-          date: tx.date?.toDate ? tx.date.toDate().toISOString() : tx.date,
+          date: tx.date?.toDate ? tx.date.toDate().toISOString() : new Date().toISOString(), // Fallback for new local items
       })) as Transaction[];
   }, [rawTransactions, localTransactions, forUserId, user]);
 
 
   const addTransaction = (transaction: Omit<Transaction, 'id' | 'date' | 'userId'>) => {
-    const newTx = {
+    const newTx: Transaction = {
         ...transaction,
         id: uuidv4(),
         date: new Date().toISOString(),
@@ -99,7 +109,7 @@ export const TransactionsProvider = ({ children, forUserId }: TransactionsProvid
     };
 
     if (forUserId && !user) { // Simulation mode
-        setLocalTransactions(prev => [newTx, ...prev]);
+        setLocalTransactions(prev => [newTx, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         return;
     }
 
