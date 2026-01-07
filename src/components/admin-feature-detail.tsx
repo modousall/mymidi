@@ -19,6 +19,7 @@ type Feature = 'mainBalance' | 'vaults' | 'virtualCards' | 'tontine';
 type AdminFeatureDetailProps = {
     feature: Feature;
     onBack: () => void;
+    users: any[]; // Receive users as a prop
 }
 
 const featureConfig = {
@@ -32,7 +33,7 @@ const featureConfig = {
         title: "Coffres / Tirelires",
         icon: <PiggyBank />,
         description: "Liste des utilisateurs ayant des coffres et le solde total de leurs coffres.",
-        getBalance: (u: any) => u.vaults.reduce((sum: number, v: any) => sum + v.balance, 0),
+        getBalance: (u: any) => u.vaults?.reduce((sum: number, v: any) => sum + v.balance, 0) || 0,
     },
     virtualCards: {
         title: "Cartes Virtuelles",
@@ -44,17 +45,13 @@ const featureConfig = {
         title: "Tontines",
         icon: <Users />,
         description: "Liste des utilisateurs participant à des tontines et la valeur totale de leurs tontines.",
-        getBalance: (u: any) => u.tontines.reduce((sum: number, t: any) => sum + t.amount * t.participants.length, 0),
+        getBalance: (u: any) => u.tontines?.reduce((sum: number, t: any) => sum + t.amount * t.participants.length, 0) || 0,
     }
 }
 
-export default function AdminFeatureDetail({ feature, onBack }: AdminFeatureDetailProps) {
+export default function AdminFeatureDetail({ feature, onBack, users = [] }: AdminFeatureDetailProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
-
-    // MOCK DATA: Replace with actual data fetching logic
-    const users: any[] = []; 
-    const refreshUsers = () => console.log("Refreshing users...");
 
     const config = featureConfig[feature];
 
@@ -99,7 +96,7 @@ export default function AdminFeatureDetail({ feature, onBack }: AdminFeatureDeta
     };
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={() => setSelectedUser(null)} onUpdate={refreshUsers} />;
+        return <AdminUserDetail user={selectedUser} onBack={() => setSelectedUser(null)} onUpdate={() => {}} />;
     }
 
     return (

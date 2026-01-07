@@ -10,8 +10,9 @@ import { CreditCard, Users, Clock, PiggyBank, Wallet, Handshake, HandCoins } fro
 import AdminFeatureDetail from './admin-feature-detail';
 import AdminProductManagement from './admin-product-management';
 import { formatCurrency } from '@/lib/utils';
-// Note: useUserManagement is removed. KPIs will be disabled for now.
-// A new data source is needed for admin-level user aggregation.
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
+
 
 const KPICard = ({ title, value, icon, isEnabled, onToggle, description, featureKey, onClick }: { title: string, value: string, icon: JSX.Element, isEnabled?: boolean, onToggle?: (feature: Feature, value: boolean) => void, description: string, featureKey?: Feature, onClick?: () => void }) => (
     <Card className={`flex flex-col ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`} onClick={onClick}>
@@ -44,14 +45,29 @@ export default function AdminFeatureManagement() {
   const { flags, setFlag } = useFeatureFlags();
   const [activeView, setActiveView] = useState<'overview' | 'featureDetail' | 'billers'>('overview');
   const [selectedFeature, setSelectedFeature] = useState<'mainBalance' | 'vaults' | 'virtualCards' | 'tontine' | null>(null);
+  
+  // Replace useUserManagement with direct Firestore collection fetch
+  const firestore = useFirestore();
+  const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading } = useCollection(usersCollection);
 
-  // KPIs are disabled as they depended on the removed useUserManagement hook.
-  const kpis = {
-    mainBalance: 0,
-    virtualCards: 0,
-    vaults: 0,
-    tontine: 0,
-  }
+  const kpis = useMemo(() => {
+    if (!users) return { mainBalance: 0, virtualCards: 0, vaults: 0, tontine: 0 };
+    
+    let mainBalance = 0;
+    let virtualCards = 0;
+    let vaults = 0;
+    let tontine = 0;
+
+    users.forEach(user => {
+        mainBalance += user.balance || 0;
+        vaults += user.vaults?.reduce((sum: number, v: any) => sum + v.balance, 0) || 0;
+        virtualCards += user.virtualCard?.balance ?? 0;
+        tontine += user.tontines?.reduce((sum: number, t: any) => sum + t.amount * t.participants.length, 0) || 0;
+    });
+
+    return { mainBalance, virtualCards, vaults, tontine };
+  }, [users]);
   
   const allProducts = [
     { featureKey: 'mainBalance', title: "Comptes Principaux", value: formatCurrency(kpis.mainBalance), icon: <Wallet/>, description: "Somme de tous les soldes principaux des utilisateurs.", isToggleable: false },
@@ -71,7 +87,7 @@ export default function AdminFeatureManagement() {
   }
 
   if(activeView === 'featureDetail' && selectedFeature) {
-      return <AdminFeatureDetail feature={selectedFeature} onBack={handleBackToOverview} />
+      return <AdminFeatureDetail feature={selectedFeature} onBack={handleBackToOverview} users={users || []} />
   }
   
   if (activeView === 'billers') {

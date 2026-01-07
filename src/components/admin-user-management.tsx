@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -7,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Search, PlusCircle } from "lucide-react";
+import { Search, PlusCircle, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "./ui/input";
 import AdminUserDetail from "./admin-user-detail";
@@ -15,8 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AdminCreateUserForm from "./admin-create-user-form";
 import { TransactionsProvider } from "@/hooks/use-transactions";
 import { formatCurrency } from "@/lib/utils";
-// Note: useUserManagement is removed, data needs to come from a new source e.g. a global user provider or API call
-// For now, we will mock or disable functionality that depends on the full user list.
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
+
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
     superadmin: 'destructive',
@@ -33,17 +33,19 @@ const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 
 
 
 export default function AdminUserManagement() {
-    // MOCK DATA: Replace with actual data fetching logic from Firestore
-    const users: any[] = []; 
-    const refreshUsers = () => console.log("Refreshing users...");
+    const firestore = useFirestore();
+    const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: users, isLoading } = useCollection(usersCollection);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const filteredUsers = useMemo(() => {
+        if (!users) return [];
         return users.filter(user => 
-            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.alias.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -55,18 +57,20 @@ export default function AdminUserManagement() {
     
     const handleBackToList = () => {
         setSelectedUser(null);
-        refreshUsers(); // Refresh data when going back to the list
     }
     
     const handleUserCreated = () => {
         setIsCreateDialogOpen(false);
-        refreshUsers();
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={refreshUsers} />
+        // We'd need to pass a way to update the user from the detail view
+        // For now, onUpdate is a no-op but could trigger a re-fetch.
+        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={() => {}} />
     }
 
+    // Admin needs a context for transactions, but it's not their own alias.
+    // This is a placeholder for a central admin alias to provide transaction context if needed.
     const adminAlias = "+221775478575";
 
     return (
@@ -105,52 +109,59 @@ export default function AdminUserManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Utilisateur</TableHead>
-                                <TableHead>Identifiant</TableHead>
-                                <TableHead>Rôle</TableHead>
-                                <TableHead>Solde Principal</TableHead>
-                                <TableHead>Statut</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {filteredUsers.map(user => (
-                                <TableRow key={user.alias} onClick={() => handleUserSelect(user)} className="cursor-pointer">
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{user.name}</p>
-                                                <p className="text-sm text-muted-foreground">{user.email}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {user.role === 'merchant' ? (
-                                            <Badge variant="outline">{user.merchantCode}</Badge>
-                                        ) : (
-                                            user.alias
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={roleVariantMap[user.role?.toLowerCase() || 'user'] || 'outline'}>{user.role || 'user'}</Badge>
-                                    </TableCell>
-                                    <TableCell>{formatCurrency(user.balance)}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
-                                            {user.isSuspended ? "Suspendu" : "Actif"}
-                                        </Badge>
-                                    </TableCell>
+                     {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <Loader2 className="animate-spin h-8 w-8" />
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Utilisateur</TableHead>
+                                    <TableHead>Identifiant</TableHead>
+                                    <TableHead>Rôle</TableHead>
+                                    <TableHead>Solde Principal</TableHead>
+                                    <TableHead>Statut</TableHead>
                                 </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                    {filteredUsers.length === 0 && (
+                            </TableHeader>
+                            <TableBody>
+                            {filteredUsers.map(user => (
+                                    <TableRow key={user.id} onClick={() => handleUserSelect(user)} className="cursor-pointer">
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-10 w-10">
+                                                    {/* Avatar handling needs to be adapted for Firestore */}
+                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
+                                                    <AvatarFallback>{user.firstName?.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{user.firstName} {user.lastName}</p>
+                                                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            {user.role === 'merchant' ? (
+                                                <Badge variant="outline">{user.merchantCode}</Badge>
+                                            ) : (
+                                                user.alias
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={roleVariantMap[user.role?.toLowerCase() || 'user'] || 'outline'}>{user.role || 'user'}</Badge>
+                                        </TableCell>
+                                        <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
+                                                {user.isSuspended ? "Suspendu" : "Actif"}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                    {!isLoading && filteredUsers.length === 0 && (
                         <div className="text-center p-8">
                             <p>Aucun utilisateur ne correspond à votre recherche.</p>
                         </div>

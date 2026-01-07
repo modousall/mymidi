@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -7,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Search, PlusCircle } from "lucide-react";
+import { Search, PlusCircle, Loader2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Input } from "./ui/input";
 import AdminUserDetail from "./admin-user-detail";
@@ -15,29 +14,30 @@ import { TransactionsProvider } from "@/hooks/use-transactions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import AdminCreateUserForm from "./admin-create-user-form";
 import { formatCurrency } from "@/lib/utils";
-// Note: useUserManagement is removed, data needs to come from a new source e.g. a global user provider or API call
-// For now, we will mock or disable functionality that depends on the full user list.
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from 'firebase/firestore';
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
     merchant: 'default',
 };
 
 export default function AdminMerchantManagement() {
-    // MOCK DATA: Replace with actual data fetching logic
-    const users: any[] = []; 
-    const refreshUsers = () => console.log("Refreshing users...");
+    const firestore = useFirestore();
+    const merchantsQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('role', '==', 'merchant')), [firestore]);
+    const { data: users, isLoading } = useCollection(merchantsQuery);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const filteredMerchants = useMemo(() => {
+        if (!users) return [];
         return users.filter(user => 
-            user.role === 'merchant' &&
-            (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.merchantCode && user.merchantCode.toLowerCase().includes(searchTerm.toLowerCase())))
+            (user.merchantCode && user.merchantCode.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }, [users, searchTerm]);
     
@@ -47,19 +47,16 @@ export default function AdminMerchantManagement() {
     
     const handleBackToList = () => {
         setSelectedUser(null);
-        refreshUsers();
     }
     
     const handleUserCreated = () => {
         setIsCreateDialogOpen(false);
-        refreshUsers();
     }
 
     if (selectedUser) {
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={refreshUsers} />
+        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={() => {}} />
     }
     
-    // This is a placeholder for a central admin alias to provider transaction context
     const adminAlias = "+221775478575";
 
     return (
@@ -98,42 +95,48 @@ export default function AdminMerchantManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Marchand</TableHead>
-                                <TableHead>Code Marchand</TableHead>
-                                <TableHead>Solde</TableHead>
-                                <TableHead>Statut</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {filteredMerchants.map(user => (
-                                <TableRow key={user.alias} onClick={() => handleUserSelect(user)} className="cursor-pointer">
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
-                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium">{user.name}</p>
-                                                <p className="text-sm text-muted-foreground">{user.email}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{user.merchantCode}</TableCell>
-                                    <TableCell>{formatCurrency(user.balance)}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
-                                            {user.isSuspended ? "Suspendu" : "Actif"}
-                                        </Badge>
-                                    </TableCell>
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <Loader2 className="animate-spin h-8 w-8" />
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Marchand</TableHead>
+                                    <TableHead>Code Marchand</TableHead>
+                                    <TableHead>Solde</TableHead>
+                                    <TableHead>Statut</TableHead>
                                 </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                    {filteredMerchants.length === 0 && (
+                            </TableHeader>
+                            <TableBody>
+                            {filteredMerchants.map(user => (
+                                    <TableRow key={user.id} onClick={() => handleUserSelect(user)} className="cursor-pointer">
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
+                                                    <AvatarFallback>{user.firstName?.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <p className="font-medium">{user.firstName} {user.lastName}</p>
+                                                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{user.merchantCode}</TableCell>
+                                        <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
+                                                {user.isSuspended ? "Suspendu" : "Actif"}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                    {!isLoading && filteredMerchants.length === 0 && (
                         <div className="text-center p-8">
                             <p>Aucun marchand ne correspond à votre recherche.</p>
                         </div>

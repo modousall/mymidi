@@ -16,6 +16,8 @@ import AdminUserDetail from './admin-user-detail';
 import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import CreditRequestDetails from './credit-request-details';
 import { formatCurrency } from '@/lib/utils';
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
 
 
 const formatDate = (dateString: string) => format(new Date(dateString), 'Pp', { locale: fr });
@@ -32,6 +34,11 @@ export default function AdminBnplManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
 
+    const firestore = useFirestore();
+    const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+    const { data: users } = useCollection(usersCollection);
+
+
     const filteredRequests = useMemo(() => {
         return allRequests.filter(req => 
             req.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,12 +51,11 @@ export default function AdminBnplManagement() {
     };
 
     const handleUserSelect = (alias: string) => {
-        // This functionality needs to be adapted to fetch user details from Firebase/backend
-        console.log("User selection from this view is not fully implemented yet.");
-        // const userToView = users.find(u => u.alias === alias);
-        // if (userToView) {
-        //     setSelectedUser(userToView);
-        // }
+        if (!users) return;
+        const userToView = users.find(u => u.alias === alias);
+        if (userToView) {
+            setSelectedUser(userToView);
+        }
     }
 
     if (selectedUser) {

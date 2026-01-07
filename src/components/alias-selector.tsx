@@ -2,25 +2,15 @@
 "use client";
 
 import * as React from "react"
-import { Building, Check, ChevronsUpDown, User, Phone } from "lucide-react"
-
+import { Building, Check, ChevronsUpDown, User, Phone, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
-} from "@/components/ui/command"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { useUserManagement } from "@/hooks/use-user-management"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useContacts } from "@/hooks/use-contacts";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from 'firebase/firestore';
+
 
 type AliasSelectorProps = {
     value: string;
@@ -30,9 +20,17 @@ type AliasSelectorProps = {
 }
 
 export function AliasSelector({ value, onChange, disabled = false, filter = 'all' }: AliasSelectorProps) {
-  const [open, setOpen] = React.useState(false)
-  const { users } = useUserManagement();
+  const [open, setOpen] = React.useState(false);
   const { contacts } = useContacts();
+  const firestore = useFirestore();
+  
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    if (filter === 'all') return collection(firestore, 'users');
+    return query(collection(firestore, 'users'), where('role', '==', filter));
+  }, [firestore, filter]);
+
+  const { data: users, isLoading } = useCollection(usersQuery);
 
   const suggestions = React.useMemo(() => {
     const contactSuggestions = contacts.map(c => ({
@@ -42,22 +40,16 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
         type: 'contact' as const
     }));
 
-    const userSuggestions = users
-        .filter(u => {
-            if (filter === 'merchant') return u.role === 'merchant';
-            if (filter === 'user') return u.role === 'user';
-            return true;
-        })
-        .map(u => {
-            const isMerchantWithCode = u.role === 'merchant' && u.merchantCode;
-            const publicIdentifier = isMerchantWithCode ? u.merchantCode : u.alias;
-            return {
-                value: publicIdentifier!,
-                label: `${u.name} (${u.role})`,
-                search: `${u.name} ${publicIdentifier}`,
-                type: u.role === 'merchant' ? 'merchant' as const : 'user' as const
-            }
-        });
+    const userSuggestions = (users || []).map(u => {
+        const isMerchantWithCode = u.role === 'merchant' && u.merchantCode;
+        const publicIdentifier = isMerchantWithCode ? u.merchantCode : u.phoneNumber;
+        return {
+            value: publicIdentifier!,
+            label: `${u.firstName} ${u.lastName} (${u.role})`,
+            search: `${u.firstName} ${u.lastName} ${publicIdentifier}`,
+            type: u.role === 'merchant' ? 'merchant' as const : 'user' as const
+        }
+    });
     
     // Simple deduplication based on alias value
     const allSuggestions = [...contactSuggestions, ...userSuggestions];
@@ -83,11 +75,15 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={disabled}
+          disabled={disabled || isLoading}
         >
-          {value
+          {isLoading ? (
+            <div className="flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Chargement...</div>
+          ) : (
+            value
             ? suggestions.find((s) => s.value === value)?.label || value
-            : "Sélectionnez ou saisissez..."}
+            : "Sélectionnez ou saisissez..."
+          )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -132,5 +128,3 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
     </Popover>
   )
 }
-
-    

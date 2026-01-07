@@ -18,7 +18,9 @@ import { Switch } from './ui/switch';
 import { toast } from '@/hooks/use-toast';
 import AdminProductDetail from './admin-product-detail';
 import { formatCurrency } from '@/lib/utils';
-// Note: useUserManagement is removed, data needs to come from a new source.
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, collectionGroup } from 'firebase/firestore';
+import type { Transaction } from '@/hooks/use-transactions';
 
 const productSchema = z.object({
   id: z.string().optional(),
@@ -240,25 +242,22 @@ export default function AdminProductManagement({ onBack }: { onBack: () => void 
   
   const [selectedProduct, setSelectedProduct] = useState<ProductWithBalance | null>(null);
 
-  // MOCK DATA: Replace with actual data fetching logic for all user transactions
-  const usersWithTransactions: any[] = [];
+  const firestore = useFirestore();
+  const transactionsQuery = useMemoFirebase(() => query(collectionGroup(firestore, 'transactions')), [firestore]);
+  const { data: allTransactions } = useCollection<Transaction>(transactionsQuery);
 
   const productsWithBalance = useMemo(() => {
     const allProducts = [...billers, ...mobileMoneyOperators];
-    const allTransactions = usersWithTransactions.flatMap(u => u.transactions);
     
     return allProducts.map(product => {
-        // Find all transactions that credit this partner (bill payments, recharges)
-        const creditTransactions = allTransactions.filter(tx => 
-            (tx.type === 'sent' && tx.reason.includes(product.name)) || 
-            (tx.type === 'received' && tx.counterparty === product.name)
-        );
+        const productTransactions = allTransactions?.filter(tx => 
+            tx.reason.includes(product.name) || tx.counterparty.includes(product.name)
+        ) || [];
+
+        const creditTransactions = productTransactions.filter(tx => tx.type === 'sent');
         const balance = creditTransactions.reduce((acc, tx) => acc + tx.amount, 0);
         
-        // Find all settlement transactions for this partner
-        const settlementTransactions = allTransactions.filter(tx => 
-            tx.type === 'versement' && tx.reason.includes(product.name)
-        );
+        const settlementTransactions = productTransactions.filter(tx => tx.type === 'versement');
         const totalSettled = settlementTransactions.reduce((acc, tx) => acc + tx.amount, 0);
 
         return {
@@ -266,7 +265,7 @@ export default function AdminProductManagement({ onBack }: { onBack: () => void 
             balance: balance - totalSettled,
         };
     });
-  }, [billers, mobileMoneyOperators, usersWithTransactions]);
+  }, [billers, mobileMoneyOperators, allTransactions]);
 
   const billersWithBalance = useMemo(() => {
       return productsWithBalance.filter(p => billers.some(b => b.id === p.id));
@@ -281,7 +280,7 @@ export default function AdminProductManagement({ onBack }: { onBack: () => void 
       return (
           <AdminProductDetail 
             product={selectedProduct}
-            allTransactions={usersWithTransactions.flatMap(u => u.transactions)}
+            allTransactions={allTransactions || []}
             onBack={() => setSelectedProduct(null)}
           />
       )

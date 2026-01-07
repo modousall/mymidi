@@ -16,7 +16,9 @@ import { formatCurrency } from '@/lib/utils';
 import QrCodeDisplay from './qr-code-display';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
-// Note: useUserManagement is removed, data needs to come from a new source.
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
+
 
 const QRCodeScanner = dynamic(() => import('./qr-code-scanner'), {
   loading: () => <div className="flex items-center justify-center h-48"><Skeleton className="h-32 w-32" /></div>,
@@ -42,8 +44,10 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedClient, setScannedClient] = useState<any | null>(null);
   const { toast } = useToast();
-  // MOCK DATA: Replace with actual data fetching logic from Firestore
-  const users: any[] = [];
+  
+  const firestore = useFirestore();
+  const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const { data: users, isLoading: isLoadingUsers } = useCollection(usersCollection);
   
   const form = useForm<PicashFormValues>({
     resolver: zodResolver(picashFormSchema),
@@ -60,7 +64,7 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
     
     // In a real app, this logic would be a single atomic backend transaction
     // For now, we simulate what would happen.
-    console.log(`Simulating withdrawal: ${values.amount} for ${scannedClient.name} by ${userInfo.name}`);
+    console.log(`Simulating withdrawal: ${values.amount} for ${scannedClient.firstName} by ${userInfo.name}`);
     
     setOperationDetails({ amount: values.amount, client: scannedClient });
     toast({ title: 'Opération réussie', description: `Vous avez été crédité de ${formatCurrency(values.amount)}.` });
@@ -83,10 +87,10 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
   const handleScannedCode = (decodedText: string) => {
      try {
         const data = JSON.parse(decodedText);
-        const client = users.find(u => u.alias === data.shid);
+        const client = users?.find(u => u.alias === data.shid || u.id === data.shid);
         if (client) {
             setScannedClient(client);
-            toast({ title: "Client Identifié", description: `${client.name} a été sélectionné pour le retrait.`});
+            toast({ title: "Client Identifié", description: `${client.firstName} a été sélectionné pour le retrait.`});
         } else {
             toast({ title: "Erreur", description: "Ce QR code ne correspond à aucun client.", variant: "destructive"});
         }
@@ -108,7 +112,7 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
             <Card className="max-w-sm mx-auto text-center">
                 <CardHeader>
                     <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4"/>
-                    <CardTitle>Retrait pour {operationDetails.client.name} terminé</CardTitle>
+                    <CardTitle>Retrait pour {operationDetails.client.firstName} terminé</CardTitle>
                     <CardDescription>
                         Vous avez remis {formatCurrency(operationDetails.amount)} au client. Votre solde a été crédité.
                     </CardDescription>
@@ -149,9 +153,9 @@ export default function PICASH({ onBack, userInfo }: PicashProps) {
                         <div className="flex-grow space-y-1">
                             {scannedClient ? (
                                 <>
-                                    <p className="font-bold">{scannedClient.name}</p>
+                                    <p className="font-bold">{scannedClient.firstName} {scannedClient.lastName}</p>
                                     <p className="text-sm text-muted-foreground">{scannedClient.alias}</p>
-                                    <p className="text-sm font-semibold">Solde: {formatCurrency(scannedClient.balance)}</p>
+                                    <p className="text-sm font-semibold">Solde: {formatCurrency(scannedClient.balance || 0)}</p>
                                 </>
                             ) : (
                                 <p className="text-muted-foreground">En attente du scan...</p>

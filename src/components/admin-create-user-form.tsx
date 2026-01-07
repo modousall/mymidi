@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { createUserWithEmailAndPassword, useAuth, useFirestore } from '@/firebase';
+import { setDoc, doc } from 'firebase/firestore';
 
 const userSchema = z.object({
-  name: z.string().min(2, "Le nom est requis."),
+  firstName: z.string().min(1, "Le prénom est requis."),
+  lastName: z.string().min(1, "Le nom est requis."),
   email: z.string().email("L'email est invalide."),
   alias: z.string().min(9, "Le numéro de téléphone doit être valide."),
   merchantCode: z.string().optional(),
@@ -35,24 +36,44 @@ type AdminCreateUserFormProps = {
 export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['support', 'admin'] }: AdminCreateUserFormProps) {
     const { toast } = useToast();
     const auth = useAuth();
+    const firestore = useFirestore();
 
     const form = useForm<UserFormValues>({
         resolver: zodResolver(userSchema),
-        defaultValues: { name: "", email: "", alias: "", merchantCode: "", pincode: "", role: allowedRoles[0] },
+        defaultValues: { firstName: "", lastName: "", email: "", alias: "", merchantCode: "", pincode: "", role: allowedRoles[0] },
     });
 
     const isMerchant = form.watch('role') === 'merchant';
 
     const onSubmit = async (values: UserFormValues) => {
-        // This is a simplified creation for admins. We're creating a Firebase Auth user
-        // but not a full Firestore profile, which is typically created on user onboarding.
-        // A more robust system would use Firebase Functions to create the full user profile.
+        if (!firestore) {
+            toast({ title: "Erreur", description: "Firestore n'est pas initialisé.", variant: "destructive" });
+            return;
+        }
+        
         try {
             const password = `${values.pincode}${values.pincode}`; // Demo password logic
-            await createUserWithEmailAndPassword(auth, values.email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, values.email, password);
+            const user = userCredential.user;
+            
+            // Create user profile in Firestore
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await setDoc(userDocRef, {
+                id: user.uid,
+                firstName: values.firstName,
+                lastName: values.lastName,
+                email: values.email,
+                phoneNumber: values.alias,
+                alias: values.alias, // Using phone number as alias for login
+                role: values.role,
+                merchantCode: values.merchantCode || null,
+                isSuspended: false,
+                balance: 0, // Initial balance
+            });
+
              toast({
                 title: "Utilisateur Créé",
-                description: `Le compte pour ${values.name} a été créé dans Firebase Auth.`
+                description: `Le compte pour ${values.firstName} a été créé.`
             });
             onUserCreated();
         } catch (error: any) {
@@ -67,17 +88,14 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Nom complet</FormLabel>
-                            <FormControl><Input placeholder="ex: Jane Doe" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="firstName" render={({ field }) => (
+                        <FormItem><FormLabel>Prénom</FormLabel><FormControl><Input placeholder="ex: Jane" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                    <FormField control={form.control} name="lastName" render={({ field }) => (
+                        <FormItem><FormLabel>Nom</FormLabel><FormControl><Input placeholder="ex: Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                </div>
                 <FormField
                     control={form.control}
                     name="email"
