@@ -57,7 +57,7 @@ export default function CreditRequestDetails({ request }: { request: BnplRequest
             <DialogHeader>
                 <DialogTitle className="flex items-center gap-2"><FileText /> Procès-Verbal de Décision de Crédit</DialogTitle>
                 <DialogDescription>
-                    Demande de {request.alias} pour un achat chez {request.merchantAlias}
+                    Demande de {request.alias} pour un achat chez {request.merchantAlias}.
                 </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4 text-sm">
