@@ -3,7 +3,7 @@
 /**
  * @fileOverview An AI flow for assessing Islamic Financing applications.
  *
- * - islamicFinancingAssessment - A function that handles the financing assessment process.
+ * - islamicFinancingAssessment - a function that handles the financing assessment process.
  */
 
 import { ai } from '@/ai/genkit';
@@ -16,7 +16,7 @@ export async function islamicFinancingAssessment(
     name: 'islamicFinancingAssessmentPrompt',
     input: { schema: IslamicFinancingInputSchema },
     output: { schema: IslamicFinancingOutputSchema },
-    model: 'googleai/gemini-1.5-flash-latest',
+    model: 'googleai/gemini-1.5-flash',
     prompt: `Vous êtes un expert en financement islamique (Mourabaha), agissant comme un moteur de décision automatisé.
 Analysez la demande de financement suivante.
 
