@@ -160,6 +160,8 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
                   status: 'Terminé'
                 });
               }
+              // This part simulates the transaction flow for an auto-approved request
+              // 1. Credit the user with the financed amount (as if from a loan account)
               credit(financedAmount);
               addTransaction({
                   type: 'received',
@@ -169,6 +171,8 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
                   date: new Date().toISOString(),
                   status: 'Terminé'
               });
+              
+              // 2. Immediately debit the user to pay the merchant
               debit(financedAmount);
               addTransaction({
                 type: 'sent',
@@ -213,13 +217,15 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
             const userBalanceKey = `midi_balance_${userToCredit.alias}`;
             const userCurrentBalanceStr = localStorage.getItem(userBalanceKey);
             const userCurrentBalance = userCurrentBalanceStr ? JSON.parse(userCurrentBalanceStr) : 0;
-            const userNewBalance = userCurrentBalance + requestToUpdate.amount;
-            localStorage.setItem(userBalanceKey, JSON.stringify(userNewBalance));
+            let userNewBalance = userCurrentBalance;
 
             // 2. Add transaction for user to see the credit
             const userTxKey = `midi_transactions_${userToCredit.alias}`;
             const userTxStr = localStorage.getItem(userTxKey);
             const userTxs = userTxStr ? JSON.parse(userTxStr) : [];
+            
+            // Credit Tx
+            userNewBalance += requestToUpdate.amount;
             const userCreditTx = {
                 id: `TXN${Date.now()}`,
                 type: 'received',
@@ -232,8 +238,7 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
             let updatedUserTxs = [userCreditTx, ...userTxs];
 
             // 3. Immediately debit the user for the payment to the merchant
-            const userFinalBalance = userNewBalance - requestToUpdate.amount;
-            localStorage.setItem(userBalanceKey, JSON.stringify(userFinalBalance));
+            userNewBalance -= requestToUpdate.amount;
             const userPaymentTx = {
                  id: `TXN${Date.now()+1}`,
                  type: 'sent',
@@ -244,6 +249,7 @@ export const BnplProvider = ({ children, alias }: BnplProviderProps) => {
                  status: 'Terminé'
             }
             updatedUserTxs = [userPaymentTx, ...updatedUserTxs];
+            localStorage.setItem(userBalanceKey, JSON.stringify(userNewBalance));
             localStorage.setItem(userTxKey, JSON.stringify(updatedUserTxs));
 
             // 4. Credit the merchant's balance
@@ -338,3 +344,5 @@ export const useBnpl = () => {
   }
   return context;
 };
+
+    
