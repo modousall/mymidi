@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useContacts } from "@/hooks/use-contacts";
-import { useProductManagement } from "@/hooks/use-product-management";
+import { useUserManagement } from "@/hooks/use-user-management";
 
 type AliasSelectorProps = {
     value: string;
@@ -20,7 +20,7 @@ type AliasSelectorProps = {
 export function AliasSelector({ value, onChange, disabled = false, filter = 'all' }: AliasSelectorProps) {
   const [open, setOpen] = React.useState(false);
   const { contacts } = useContacts();
-  const { mobileMoneyOperators } = useProductManagement();
+  const { users } = useUserManagement();
 
 
   const suggestions = React.useMemo(() => {
@@ -33,12 +33,16 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
         })) 
         : [];
 
-    const merchantSuggestions = (mobileMoneyOperators || []).map(op => ({
-        value: op.alias || op.name,
-        label: `${op.name} (Service)`,
-        search: `${op.name} ${op.alias}`,
-        type: 'merchant' as const
-    }));
+    const merchantUsers = users.filter(u => u.role === 'merchant');
+    
+    const merchantSuggestions = (filter === 'merchant' || filter === 'all') 
+        ? merchantUsers.map(op => ({
+            value: op.alias || op.name,
+            label: `${op.name} (Marchand)`,
+            search: `${op.name} ${op.alias}`,
+            type: 'merchant' as const
+        }))
+        : [];
     
     const allSuggestions = [...contactSuggestions, ...merchantSuggestions];
 
@@ -48,10 +52,10 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
 
     return uniqueSuggestions;
 
-  }, [mobileMoneyOperators, contacts, filter]);
+  }, [users, contacts, filter]);
 
   const getIcon = (type: 'contact' | 'user' | 'merchant') => {
-      if (type === 'merchant') return <Landmark className="mr-2 h-4 w-4 text-muted-foreground"/>;
+      if (type === 'merchant') return <Building className="mr-2 h-4 w-4 text-muted-foreground"/>;
       if (type === 'contact') return <User className="mr-2 h-4 w-4 text-muted-foreground"/>;
       return <User className="mr-2 h-4 w-4 text-muted-foreground"/>;
   }
