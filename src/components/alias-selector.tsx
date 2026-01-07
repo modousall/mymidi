@@ -24,13 +24,13 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
   const { contacts } = useContacts();
   const firestore = useFirestore();
   
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    if (filter === 'all') return collection(firestore, 'users');
-    return query(collection(firestore, 'users'), where('role', '==', filter));
+  // Only fetch merchants, as listing all users is a protected operation
+  const merchantsQuery = useMemoFirebase(() => {
+    if (!firestore || filter !== 'merchant') return null;
+    return query(collection(firestore, 'users'), where('role', '==', 'merchant'));
   }, [firestore, filter]);
 
-  const { data: users, isLoading } = useCollection(usersQuery);
+  const { data: merchants, isLoading } = useCollection(merchantsQuery);
 
   const suggestions = React.useMemo(() => {
     const contactSuggestions = contacts.map(c => ({
@@ -40,26 +40,26 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
         type: 'contact' as const
     }));
 
-    const userSuggestions = (users || []).map(u => {
-        const isMerchantWithCode = u.role === 'merchant' && u.merchantCode;
-        const publicIdentifier = isMerchantWithCode ? u.merchantCode : u.phoneNumber;
+    const merchantSuggestions = (merchants || []).map(u => {
+        const publicIdentifier = u.merchantCode || u.phoneNumber;
         return {
             value: publicIdentifier!,
-            label: `${u.firstName} ${u.lastName} (${u.role})`,
+            label: `${u.firstName} ${u.lastName} (Marchand)`,
             search: `${u.firstName} ${u.lastName} ${publicIdentifier}`,
-            type: u.role === 'merchant' ? 'merchant' as const : 'user' as const
+            type: 'merchant' as const
         }
     });
     
-    // Simple deduplication based on alias value
-    const allSuggestions = [...contactSuggestions, ...userSuggestions];
+    // In user mode, we only show contacts. In merchant filter mode, we show merchants.
+    const allSuggestions = filter === 'merchant' ? merchantSuggestions : [...contactSuggestions, ...merchantSuggestions];
+
     const uniqueSuggestions = allSuggestions.filter((suggestion, index, self) =>
         index === self.findIndex((s) => s.value === suggestion.value)
     );
 
     return uniqueSuggestions;
 
-  }, [users, contacts, filter]);
+  }, [merchants, contacts, filter]);
 
   const getIcon = (type: 'contact' | 'user' | 'merchant') => {
       if (type === 'merchant') return <Building className="mr-2 h-4 w-4 text-muted-foreground"/>;
