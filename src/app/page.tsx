@@ -122,7 +122,7 @@ const ensureSuperAdminExists = async (auth: any, firestore: any) => {
 // A single wrapper for all providers that depend on a user alias
 const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
     return (
-        <TransactionsProvider alias={alias}>
+        <TransactionsProvider>
             <TreasuryProvider>
                 <CmsProvider>
                     <ProductProvider addSettlementTransaction={(tx: any) => console.log(tx)}>

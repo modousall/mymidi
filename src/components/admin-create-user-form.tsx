@@ -53,8 +53,8 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
     const isMerchant = form.watch('role') === 'merchant';
 
     const onSubmit = async (values: UserFormValues) => {
-        if (!firestore) {
-            toast({ title: "Erreur", description: "Firestore n'est pas initialisé.", variant: "destructive" });
+        if (!auth || !firestore) {
+            toast({ title: "Erreur", description: "Le service d'authentification n'est pas initialisé.", variant: "destructive" });
             return;
         }
         
@@ -197,5 +197,3 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
         </Form>
     );
 }
-
-    

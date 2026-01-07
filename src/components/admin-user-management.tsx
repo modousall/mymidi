@@ -64,7 +64,7 @@ export default function AdminUserManagement({ allUsers, refreshUsers }: AdminUse
 
     if (selectedUser) {
         return (
-            <TransactionsProvider alias={selectedUser.alias}>
+            <TransactionsProvider>
                 <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
             </TransactionsProvider>
         )
