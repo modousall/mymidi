@@ -45,8 +45,7 @@ export const useUserManagement = () => {
 
   const loadUsers = useCallback(() => {
     const loadedUsersWithDetails: ManagedUserWithDetails[] = [];
-    const loadedUsersWithTx: ManagedUserWithTransactions[] = [];
-
+    
     if (typeof window === 'undefined') {
         return;
     }
@@ -89,7 +88,6 @@ export const useUserManagement = () => {
               role: userData.role || 'user',
             };
 
-            loadedUsersWithTx.push({ ...managedUser, transactions });
             loadedUsersWithDetails.push({ ...managedUser, transactions, vaults, tontines, virtualCard });
 
           } catch (e) {
@@ -99,7 +97,7 @@ export const useUserManagement = () => {
       }
     }
     setUsers(loadedUsersWithDetails);
-    setUsersWithTransactions(loadedUsersWithTx);
+    setUsersWithTransactions(loadedUsersWithDetails.map(({ vaults, tontines, virtualCard, ...rest }) => rest));
 
   }, []);
 
