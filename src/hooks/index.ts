@@ -20,3 +20,5 @@ export * from './use-islamic-financing';
 export * from './use-treasury-management';
 export * from './use-cms';
 export * from './use-recurring-payments';
+export * from './use-account';
+
