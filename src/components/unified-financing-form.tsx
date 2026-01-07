@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -213,7 +212,8 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
     defaultValues: prefillData ? { 
         financingType: 'bnpl', 
         ...prefillData, 
-        firstInstallmentDate: new Date(prefillData.firstInstallmentDate) 
+        firstInstallmentDate: new Date(prefillData.firstInstallmentDate),
+        clientAlias: prefillData.clientAlias || ''
     } : {
         financingType: 'bnpl',
         merchantAlias: '',
@@ -272,10 +272,18 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
             financingType: 'bnpl',
             ...prefillData,
             firstInstallmentDate: new Date(prefillData.firstInstallmentDate),
+            clientAlias: prefillData.clientAlias || ''
         });
         toast({ title: "Proposition de crédit chargée", description: "Vérifiez et soumettez la demande." });
     }
   }, [prefillData, form, toast]);
+
+   useEffect(() => {
+    // When financingType changes, reset clientAlias if not in admin mode
+    if (!isAdminMode) {
+      form.setValue('clientAlias', '');
+    }
+  }, [watchedType, isAdminMode, form]);
 
   const onSubmit = async (values: UnifiedFormValues) => {
     if (values.financingType === 'bnpl') {
@@ -517,7 +525,7 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
 
         <Button type="submit" className="w-full py-6" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Vérifier ma demande
+          Soumettre la Demande
         </Button>
 
         <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
