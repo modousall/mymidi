@@ -23,8 +23,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ScrollArea } from './ui/scroll-area';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import TegScheduleReceipt from './teg-schedule-receipt';
-import html2canvas from 'html2canvas';
 import { useToast } from '@/hooks/use-toast';
+import dynamic from 'next/dynamic';
+
+const html2canvas = dynamic(() => import('html2canvas'), { ssr: false });
+const jsPDF = dynamic(() => import('jspdf').then(mod => mod.jsPDF), { ssr: false });
+
 
 const MAX_ANNUAL_TEG = 0.24; // 24%
 
@@ -151,27 +155,28 @@ export default function AdminTegSimulator() {
     }, [watchedValues]);
     
     const handleDownloadPDF = async () => {
+        if (!jsPDF || !html2canvas || !receiptRef.current) {
+            toast({ title: "Erreur", description: "Les librairies de PDF ne sont pas chargées.", variant: "destructive" });
+            return;
+        }
         setIsDownloading(true);
-        const { jsPDF } = await import('jspdf');
-        if (receiptRef.current) {
-            try {
-                const canvas = await html2canvas(receiptRef.current, { scale: 3 });
-                const imgData = canvas.toDataURL('image/png');
-                
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'px',
-                    format: [canvas.width, canvas.height]
-                });
-                
-                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-                pdf.save(`echeancier-simulation-${Date.now()}.pdf`);
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                toast({ title: "Erreur de téléchargement", description: "Impossible de générer le reçu PDF.", variant: "destructive" });
-            } finally {
-                setIsDownloading(false);
-            }
+        try {
+            const canvas = await html2canvas(receiptRef.current, { scale: 3 });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const PDF = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            
+            PDF.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            PDF.save(`echeancier-simulation-${Date.now()}.pdf`);
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            toast({ title: "Erreur de téléchargement", description: "Impossible de générer le reçu PDF.", variant: "destructive" });
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -334,3 +339,5 @@ export default function AdminTegSimulator() {
         </DialogContent>
     );
 }
+
+    

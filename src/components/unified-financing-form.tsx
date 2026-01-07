@@ -63,8 +63,9 @@ type UnifiedFormValues = z.infer<typeof unifiedSchema>;
 type FinancingType = UnifiedFormValues['financingType'];
 
 // --- Props ---
-export type CreditProposalPrefill = Omit<Extract<UnifiedFormValues, { financingType: 'bnpl' }>, 'firstInstallmentDate' | 'financingType'> & {
+export type CreditProposalPrefill = Omit<Extract<UnifiedFormValues, { financingType: 'bnpl' }>, 'firstInstallmentDate' | 'financingType' | 'clientAlias'> & {
     firstInstallmentDate: string;
+    clientAlias?: string;
 };
 
 type UnifiedFinancingFormProps = {
@@ -532,3 +533,5 @@ export default function UnifiedFinancingForm({ onBack, prefillData = null, isAdm
     </Form>
   );
 }
+
+    

@@ -36,9 +36,9 @@ type IslamicFinancingProviderProps = {
 export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingProviderProps) => {
   const [allRequests, setAllRequests] = useState<FinancingRequest[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { transactions, addTransaction } = useTransactions();
-  const { balance, credit } = useBalance();
-  const { users, usersWithTransactions } = useUserManagement();
+  const { addTransaction } = useTransactions();
+  const { credit } = useBalance();
+  const { usersWithTransactions } = useUserManagement();
 
   useEffect(() => {
     try {
@@ -69,13 +69,13 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
   
   const submitRequest = async (payload: SubmitRequestPayload, clientAlias?: string): Promise<IslamicFinancingOutput> => {
       const targetAlias = clientAlias || alias;
-      const user = users.find(u => u.alias === targetAlias);
+      
       const userWithTx = usersWithTransactions.find(u => u.alias === targetAlias);
+      if (!userWithTx) {
+          throw new Error("Impossible de trouver l'utilisateur pour l'évaluation.");
+      }
       
-      const userBalance = user ? user.balance : balance;
-      const userTransactions = userWithTx ? userWithTx.transactions : transactions;
-      
-      const transactionHistory = userTransactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
+      const transactionHistory = userWithTx.transactions.slice(0, 10).map(t => ({ amount: t.amount, type: t.type, date: t.date }));
 
       const assessmentInput: IslamicFinancingInput = {
         alias: targetAlias,
@@ -83,7 +83,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
         amount: payload.amount,
         durationMonths: payload.durationMonths,
         purpose: payload.purpose,
-        currentBalance: userBalance,
+        currentBalance: userWithTx.balance,
         transactionHistory,
       }
 
@@ -134,7 +134,7 @@ export const IslamicFinancingProvider = ({ children, alias }: IslamicFinancingPr
       
        if (wasInReview && status === 'approved') {
           try {
-            const userToCredit = users.find(u => u.alias === requestToUpdate.alias);
+            const userToCredit = usersWithTransactions.find(u => u.alias === requestToUpdate.alias);
              if (!userToCredit) {
                 throw new Error("Utilisateur introuvable pour la transaction de financement.");
             }
@@ -189,3 +189,5 @@ export const useIslamicFinancing = () => {
   }
   return context;
 };
+
+    
