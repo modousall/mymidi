@@ -45,10 +45,18 @@ Analysez la demande de "Credit Marchands" (BNPL) suivante.
 
 **Output Requis :**
 
-1.  **Scores** : Remplissez l'objet 'scores' avec les 4 scores calculés (valeur et explication).
-2.  **Statut** : 'approved', 'rejected', ou 'review' basé sur le score de risque.
-3.  **Raison (Justification)** : Fournissez une raison claire, concise et structurée qui servira de base pour le Procès-Verbal (PV) de la décision. Commencez par la conclusion, puis listez les points clés de l'analyse des scores.
-4.  **Plan de Remboursement** : Si le statut est 'approved', calculez et fournissez le plan de remboursement.
+Vous devez répondre uniquement avec un objet JSON valide qui respecte la structure suivante (ne renvoyez aucun texte ou formatage supplémentaire) :
+{
+  "status": "'approved' | 'rejected' | 'review'",
+  "reason": "Une justification claire et concise pour la décision.",
+  "repaymentPlan": "Un plan de remboursement si la demande est approuvée, sinon une chaîne vide.",
+  "scores": {
+    "socialProfessional": { "value": 0, "explanation": "..." },
+    "activity": { "value": 0, "explanation": "..." },
+    "behavioral": { "value": 0, "explanation": "..." },
+    "risk": { "value": 0, "explanation": "..." }
+  }
+}
 
 **Informations sur le demandeur :**
 Alias: ${input.alias}
@@ -59,8 +67,6 @@ Nombre d'échéances: ${input.installmentsCount}
 Périodicité de remboursement: ${input.repaymentFrequency}
 Date de première échéance: ${input.firstInstallmentDate}
 Taux de marge: ${input.marginRate}% par période
-
-**Répondez uniquement avec un objet JSON valide conforme au schéma.**
 `;
 
   const result = await aiGenerate(prompt, true);
