@@ -4,6 +4,7 @@
  */
 
 import { geminiGenerate } from './gemini';
+import { openaiGenerate } from './openai';
 
 /**
  * A simple wrapper around the geminiGenerate function.
@@ -15,11 +16,13 @@ export async function aiGenerate(prompt: string, jsonMode: boolean = false) {
   try {
     return await geminiGenerate(prompt, jsonMode);
   } catch (error) {
-    console.error('Gemini failed, this is a placeholder for a fallback like OpenAI', error);
-    // In a real app, you might have a fallback to another model.
+    console.error('Gemini failed → fallback OpenAI', error);
     if (jsonMode) {
-        return { error: "AI service failed" };
+      // OpenAI fallback needs to be adapted for JSON mode if needed.
+      // For now, returning an error structure.
+      console.error("OpenAI fallback does not support JSON mode currently.");
+      return { error: "AI service failed to produce valid JSON." };
     }
-    return "AI service is currently unavailable.";
+    return await openaiGenerate(prompt);
   }
 }
