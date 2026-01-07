@@ -3,9 +3,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from './use-toast';
-import type { Transaction } from './use-transactions';
+import { TransactionsContext, type Transaction } from './use-transactions';
 import { formatCurrency } from '@/lib/utils';
-import { useTransactions } from './use-transactions';
 
 export type ProductItem = {
     id: string;
