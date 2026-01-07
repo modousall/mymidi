@@ -14,8 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import AdminCreateUserForm from "./admin-create-user-form";
 import { TransactionsProvider } from "@/hooks/use-transactions";
 import { formatCurrency } from "@/lib/utils";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { useUserManagement } from "@/hooks/use-user-management";
 
 
 const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 'outline'} = {
@@ -33,9 +32,7 @@ const roleVariantMap: {[key: string]: 'default' | 'secondary' | 'destructive' | 
 
 
 export default function AdminUserManagement() {
-    const firestore = useFirestore();
-    const usersCollection = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-    const { data: users, isLoading } = useCollection(usersCollection);
+    const { users, refreshUsers } = useUserManagement();
 
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedUser, setSelectedUser] = useState<any | null>(null);
@@ -44,8 +41,7 @@ export default function AdminUserManagement() {
     const filteredUsers = useMemo(() => {
         if (!users) return [];
         return users.filter(user => 
-            user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.alias.toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -57,16 +53,16 @@ export default function AdminUserManagement() {
     
     const handleBackToList = () => {
         setSelectedUser(null);
+        refreshUsers(); // Refresh the list after an update
     }
     
     const handleUserCreated = () => {
         setIsCreateDialogOpen(false);
+        refreshUsers();
     }
 
     if (selectedUser) {
-        // We'd need to pass a way to update the user from the detail view
-        // For now, onUpdate is a no-op but could trigger a re-fetch.
-        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={() => {}} />
+        return <AdminUserDetail user={selectedUser} onBack={handleBackToList} onUpdate={handleBackToList} />
     }
 
     // Admin needs a context for transactions, but it's not their own alias.
@@ -109,7 +105,7 @@ export default function AdminUserManagement() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                     {isLoading ? (
+                     {users.length === 0 ? (
                         <div className="flex justify-center items-center h-64">
                             <Loader2 className="animate-spin h-8 w-8" />
                         </div>
@@ -126,16 +122,16 @@ export default function AdminUserManagement() {
                             </TableHeader>
                             <TableBody>
                             {filteredUsers.map(user => (
-                                    <TableRow key={user.id} onClick={() => handleUserSelect(user)} className="cursor-pointer">
+                                    <TableRow key={user.alias} onClick={() => handleUserSelect(user)} className="cursor-pointer">
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-10 w-10">
                                                     {/* Avatar handling needs to be adapted for Firestore */}
-                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.firstName} />
-                                                    <AvatarFallback>{user.firstName?.charAt(0)}</AvatarFallback>
+                                                    <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
+                                                    <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                                 <div>
-                                                    <p className="font-medium">{user.firstName} {user.lastName}</p>
+                                                    <p className="font-medium">{user.name}</p>
                                                     <p className="text-sm text-muted-foreground">{user.email}</p>
                                                 </div>
                                             </div>
@@ -161,7 +157,7 @@ export default function AdminUserManagement() {
                             </TableBody>
                         </Table>
                     )}
-                    {!isLoading && filteredUsers.length === 0 && (
+                    {users.length > 0 && filteredUsers.length === 0 && (
                         <div className="text-center p-8">
                             <p>Aucun utilisateur ne correspond à votre recherche.</p>
                         </div>
