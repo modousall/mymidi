@@ -3,10 +3,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Transaction as UserTransaction } from './use-transactions';
 import type { Vault } from './use-vaults';
 import type { Tontine } from './use-tontine';
 import type { CardDetails, CardTransaction } from './use-virtual-card';
+import { v4 as uuidv4 } from 'uuid';
 
 export type ManagedUser = {
   name: string;
@@ -18,8 +18,18 @@ export type ManagedUser = {
   role: string;
 };
 
-// Exporting Transaction type to be used in other components
-export type Transaction = UserTransaction;
+// Re-exporting this from the new source of truth when needed
+// For now, we define it locally for the ManagedUser types
+export type Transaction = {
+    id: string;
+    type: "sent" | "received" | "tontine" | "card_recharge" | "versement";
+    counterparty: string;
+    reason: string;
+    date: string; // ISO string
+    amount: number;
+    status: "Terminé" | "En attente" | "Échoué" | "Retourné";
+    userId: string;
+};
 
 export type ManagedUserWithTransactions = ManagedUser & {
     transactions: Transaction[];
@@ -63,14 +73,16 @@ export const useUserManagement = () => {
             // Fetch all related data from localStorage
             const balanceDataString = localStorage.getItem(`midi_balance_${alias}`);
             const avatarDataString = localStorage.getItem(`midi_avatar_${alias}`);
-            // Transactions are now fetched from Firestore, so we'll have to adjust this part.
-            // For now, we'll keep it empty and handle it in the components.
-            const transactions: Transaction[] = []; // This is now handled by Firestore per-user
             const vaultsDataString = localStorage.getItem(`midi_vaults_${alias}`);
             const tontinesDataString = localStorage.getItem(`midi_tontines_${alias}`);
             const virtualCardDataString = localStorage.getItem(`midi_virtual_card_${alias}`);
             const virtualCardTxDataString = localStorage.getItem(`midi_virtual_card_txs_${alias}`);
             
+            // Transactions are no longer stored per user in local storage this way.
+            // We load an empty array here. Components should use the useTransactions hook for the current user.
+            // For admin views showing ALL transactions, a different approach is needed.
+            const transactions: Transaction[] = [];
+
             const balance = balanceDataString ? JSON.parse(balanceDataString) : 0;
             const vaults = vaultsDataString ? JSON.parse(vaultsDataString) : [];
             const tontines = tontinesDataString ? JSON.parse(tontinesDataString) : [];
@@ -98,9 +110,21 @@ export const useUserManagement = () => {
       }
     }
     setUsers(loadedUsersWithDetails);
-    // This part is tricky now. We'll provide users without transactions initially.
-    // Components needing all transactions will have to fetch them differently.
-    setUsersWithTransactions(loadedUsersWithDetails.map(({ vaults, tontines, virtualCard, ...rest }) => rest));
+    
+    const loadedUsersWithLocalTransactions: ManagedUserWithTransactions[] = loadedUsersWithDetails.map(user => {
+         const transactionsDataString = localStorage.getItem(`midi_transactions_${user.alias}`);
+         const transactions = transactionsDataString ? JSON.parse(transactionsDataString) : [];
+         return {
+            ...user,
+            transactions: transactions.map((tx: Transaction) => ({
+                ...tx,
+                id: `${user.alias}-${tx.id}` // Ensure global uniqueness for keys
+            }))
+         }
+    });
+
+    setUsersWithTransactions(loadedUsersWithLocalTransactions);
+
 
   }, []);
 
@@ -183,30 +207,31 @@ export const useUserManagement = () => {
     };
 
     localStorage.setItem(userKey, JSON.stringify(newUser));
-    // Initialize other user-related data
     localStorage.setItem(`midi_balance_${payload.alias}`, '0');
-    // No need to initialize transactions, as it's now in Firestore
+    localStorage.setItem(`midi_transactions_${payload.alias}`, '[]'); // Initialize local storage transactions
     localStorage.setItem(`midi_contacts_${payload.alias}`, '[]');
     localStorage.setItem(`midi_vaults_${payload.alias}`, '[]');
     localStorage.setItem(`midi_tontines_${payload.alias}`, '[]');
     
-    loadUsers(); // Force reload of all users to reflect change
+    loadUsers(); 
     return { success: true, message: "Utilisateur créé avec succès." };
   };
 
-  // This function is now more complex. It can't directly add to another user's local storage.
-  // With Firestore, this would involve creating a document in the other user's subcollection.
-  // For now, this simulation will be limited.
-  const addTransactionForUser = (userAlias: string, transaction: Omit<Transaction, 'id' | 'date' | 'userId'>, balanceChange: 'credit' | 'debit') => {
-      console.warn(`Simulating transaction for ${userAlias}. In a real Firestore app, this would be a backend operation.`);
+  const addTransactionForUser = (userAlias: string, transaction: Omit<Transaction, 'id' | 'userId'>, balanceChange: 'credit' | 'debit') => {
       const balanceKey = `midi_balance_${userAlias}`;
       const currentBalanceStr = localStorage.getItem(balanceKey);
       const currentBalance = currentBalanceStr ? JSON.parse(currentBalanceStr) : 0;
       const newBalance = balanceChange === 'credit' ? currentBalance + transaction.amount : currentBalance - transaction.amount;
       localStorage.setItem(balanceKey, JSON.stringify(newBalance));
+
+      // This part remains local for admin views that rely on it
+      const txKey = `midi_transactions_${userAlias}`;
+      const currentTxs = JSON.parse(localStorage.getItem(txKey) || '[]');
+      const newTx = { ...transaction, id: `TXN-${uuidv4()}` };
+      localStorage.setItem(txKey, JSON.stringify([newTx, ...currentTxs]));
+
       loadUsers();
   };
-
 
   return { users, usersWithTransactions, toggleUserSuspension, resetUserPin, addUser, updateUserRole, changeUserPin, refreshUsers: loadUsers, addTransactionForUser };
 };

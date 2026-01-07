@@ -7,6 +7,7 @@ import { useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, addDoc, serverTimestamp, query, where, orderBy, updateDoc, doc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { v4 as uuidv4 } from "uuid";
 
 
 export type Transaction = {
@@ -67,6 +68,7 @@ export const TransactionsProvider = ({ children, alias }: TransactionsProviderPr
     
     addDoc(transactionsColRef, {
       ...transaction,
+      id: `TXN-${uuidv4()}`,
       userId: user.uid,
       date: serverTimestamp(),
     }).catch(error => {
