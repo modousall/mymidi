@@ -17,6 +17,22 @@ import Financing from './financing';
 import Epargne from './epargne';
 import WithdrawOptions from './withdraw-options';
 import Paiement from './paiement';
+import { AvatarProvider } from '@/hooks/use-avatar';
+import { BalanceProvider } from '@/hooks/use-balance';
+import { TransactionsProvider } from '@/hooks/use-transactions';
+import { ContactsProvider } from '@/hooks/use-contacts';
+import { VirtualCardProvider } from '@/hooks/use-virtual-card';
+import { VaultsProvider } from '@/hooks/use-vaults';
+import { TontineProvider } from '@/hooks/use-tontine';
+import { FeatureFlagProvider } from '@/hooks/use-feature-flags';
+import { ProductProvider } from '@/hooks/use-product-management';
+import { RoleProvider } from '@/hooks/use-role-management';
+import { MonthlyBudgetProvider } from '@/hooks/use-monthly-budget';
+import { BnplProvider } from '@/hooks/use-bnpl';
+import { IslamicFinancingProvider } from '@/hooks/use-islamic-financing';
+import { TreasuryProvider } from '@/hooks/use-treasury-management';
+import { CmsProvider } from '@/hooks/use-cms';
+import { RecurringPaymentsProvider } from '@/hooks/use-recurring-payments';
 
 
 type UserInfo = {
@@ -35,6 +51,57 @@ type DashboardProps = {
 type View = 'dashboard' | 'profile' | 'settings' | 'merchants';
 type ActiveAction = 'none' | 'transferer' | 'recharger' | 'retirer' | 'paiement';
 type ActiveService = 'ma-carte' | 'epargne' | 'financement' | null;
+
+const ProductProviderWrapper = ({ children }: { children: React.ReactNode }) => {
+  const handleSettlement = (tx: any) => {
+      // In a real app, this would be a Firestore transaction
+      console.warn("Settlement transaction from ProductProvider:", tx);
+  }
+  return (
+    <ProductProvider addSettlementTransaction={handleSettlement}>
+      {children}
+    </ProductProvider>
+  )
+}
+
+// A single wrapper for all providers that depend on a user alias
+const AppProviders = ({ alias, children }: { alias: string, children: React.ReactNode }) => {
+    return (
+        <TransactionsProvider alias={alias}>
+            <TreasuryProvider>
+                <CmsProvider>
+                    <ProductProviderWrapper>
+                        <FeatureFlagProvider>
+                            <RoleProvider>
+                                <MonthlyBudgetProvider>
+                                    <BalanceProvider alias={alias}>
+                                        <BnplProvider alias={alias}>
+                                            <IslamicFinancingProvider alias={alias}>
+                                                <AvatarProvider alias={alias}>
+                                                    <ContactsProvider alias={alias}>
+                                                        <VirtualCardProvider alias={alias}>
+                                                            <VaultsProvider alias={alias}>
+                                                                <TontineProvider alias={alias}>
+                                                                    <RecurringPaymentsProvider alias={alias}>
+                                                                        {children}
+                                                                    </RecurringPaymentsProvider>
+                                                                </TontineProvider>
+                                                            </VaultsProvider>
+                                                        </VirtualCardProvider>
+                                                    </ContactsProvider>
+                                                </AvatarProvider>
+                                            </IslamicFinancingProvider>
+                                        </BnplProvider>
+                                    </BalanceProvider>
+                                </MonthlyBudgetProvider>
+                            </RoleProvider>
+                        </FeatureFlagProvider>
+                    </ProductProviderWrapper>
+                </CmsProvider>
+            </TreasuryProvider>
+        </TransactionsProvider>
+    )
+}
 
 export default function Dashboard({ alias, userInfo, onLogout }: DashboardProps) {
     const [view, setView] = useState<View>('dashboard');
@@ -131,7 +198,9 @@ export default function Dashboard({ alias, userInfo, onLogout }: DashboardProps)
   return (
     <div className="flex flex-col min-h-screen bg-background">
         <main className="flex-grow container mx-auto p-4 sm:p-6">
-            {renderContent()}
+            <AppProviders alias={alias}>
+              {renderContent()}
+            </AppProviders>
         </main>
     </div>
   );
