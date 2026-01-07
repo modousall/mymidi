@@ -32,7 +32,8 @@ export default function AdminMerchantManagement() {
             user.role === 'merchant' &&
             (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.alias.toLowerCase().includes(searchTerm.toLowerCase()))
+            user.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (user.merchantCode && user.merchantCode.toLowerCase().includes(searchTerm.toLowerCase())))
         );
     }, [users, searchTerm]);
     
@@ -97,7 +98,7 @@ export default function AdminMerchantManagement() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Marchand</TableHead>
-                                <TableHead>Alias</TableHead>
+                                <TableHead>Code Marchand</TableHead>
                                 <TableHead>Solde</TableHead>
                                 <TableHead>Statut</TableHead>
                             </TableRow>
@@ -117,7 +118,7 @@ export default function AdminMerchantManagement() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{user.alias}</TableCell>
+                                    <TableCell>{user.merchantCode}</TableCell>
                                     <TableCell>{formatCurrency(user.balance)}</TableCell>
                                     <TableCell>
                                         <Badge variant={user.isSuspended ? "destructive" : "default"} className={!user.isSuspended ? "bg-green-100 text-green-800" : ""}>
@@ -138,3 +139,5 @@ export default function AdminMerchantManagement() {
         </TransactionsProvider>
     )
 }
+
+    

@@ -11,7 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
 export type ManagedUser = {
   name: string;
   email: string;
-  alias: string;
+  alias: string; // phone number for login
+  merchantCode?: string; // public merchant code
   balance: number;
   avatar: string | null;
   isSuspended: boolean;
@@ -44,7 +45,8 @@ export type ManagedUserWithDetails = ManagedUserWithTransactions & {
 export type NewUserPayload = {
     name: string;
     email: string;
-    alias: string;
+    alias: string; // phone number
+    merchantCode?: string;
     pincode: string;
     role: 'support' | 'admin' | 'merchant';
 }
@@ -95,6 +97,7 @@ export const useUserManagement = () => {
               name: userData.name,
               email: userData.email,
               alias: alias,
+              merchantCode: userData.merchantCode,
               balance: balance,
               avatar: avatarDataString || null,
               isSuspended: userData.isSuspended || false,
@@ -192,16 +195,20 @@ export const useUserManagement = () => {
   const addUser = (payload: NewUserPayload): { success: boolean, message: string } => {
     const userKey = `midi_user_${payload.alias}`;
     if (localStorage.getItem(userKey)) {
-        return { success: false, message: "Cet alias est déjà utilisé." };
+        return { success: false, message: "Ce numéro de téléphone est déjà utilisé." };
     }
 
-    const newUser = {
+    const newUser: any = {
         name: payload.name,
         email: payload.email,
         pincode: payload.pincode,
         role: payload.role,
         isSuspended: false,
     };
+
+    if(payload.role === 'merchant') {
+        newUser.merchantCode = payload.merchantCode;
+    }
 
     localStorage.setItem(userKey, JSON.stringify(newUser));
     localStorage.setItem(`midi_balance_${payload.alias}`, '0');
@@ -233,3 +240,5 @@ export const useUserManagement = () => {
 
   return { users, usersWithTransactions, toggleUserSuspension, resetUserPin, addUser, updateUserRole, changeUserPin, refreshUsers: loadUsers, addTransactionForUser };
 };
+
+    

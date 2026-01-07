@@ -48,12 +48,16 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
             if (filter === 'user') return u.role === 'user';
             return true;
         })
-        .map(u => ({
-            value: u.alias,
-            label: `${u.name} (${u.role})`,
-            search: `${u.name} ${u.alias}`,
-            type: u.role === 'merchant' ? 'merchant' as const : 'user' as const
-        }));
+        .map(u => {
+            const isMerchantWithCode = u.role === 'merchant' && u.merchantCode;
+            const publicIdentifier = isMerchantWithCode ? u.merchantCode : u.alias;
+            return {
+                value: publicIdentifier!,
+                label: `${u.name} (${u.role})`,
+                search: `${u.name} ${publicIdentifier}`,
+                type: u.role === 'merchant' ? 'merchant' as const : 'user' as const
+            }
+        });
     
     // Simple deduplication based on alias value
     const allSuggestions = [...contactSuggestions, ...userSuggestions];
@@ -128,3 +132,5 @@ export function AliasSelector({ value, onChange, disabled = false, filter = 'all
     </Popover>
   )
 }
+
+    

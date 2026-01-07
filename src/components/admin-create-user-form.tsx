@@ -14,10 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const userSchema = z.object({
   name: z.string().min(2, "Le nom est requis."),
   email: z.string().email("L'email est invalide."),
-  alias: z.string().min(3, "L'alias doit contenir au moins 3 caractères."),
+  alias: z.string().min(9, "Le numéro de téléphone doit être valide."),
+  merchantCode: z.string().optional(),
   pincode: z.string().regex(/^\d{4}$/, "Le code PIN doit être composé de 4 chiffres."),
   role: z.enum(['support', 'admin', 'merchant'], { required_error: "Le rôle est requis." }),
+}).refine(data => data.role !== 'merchant' || (data.merchantCode && data.merchantCode.length > 0), {
+    message: "Le code marchand est requis pour les marchands.",
+    path: ["merchantCode"],
 });
+
 
 type UserFormValues = z.infer<typeof userSchema>;
 
@@ -32,8 +37,10 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
 
     const form = useForm<UserFormValues>({
         resolver: zodResolver(userSchema),
-        defaultValues: { name: "", email: "", alias: "", pincode: "", role: allowedRoles[0] },
+        defaultValues: { name: "", email: "", alias: "", merchantCode: "", pincode: "", role: allowedRoles[0] },
     });
+
+    const isMerchant = form.watch('role') === 'merchant';
 
     const onSubmit = (values: UserFormValues) => {
         const result = addUser({
@@ -81,17 +88,6 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
                         </FormItem>
                     )}
                 />
-                <FormField
-                    control={form.control}
-                    name="alias"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Alias / Identifiant</FormLabel>
-                            <FormControl><Input placeholder="ex: janedoe99" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
                  <FormField
                     control={form.control}
                     name="role"
@@ -114,6 +110,30 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
                         </FormItem>
                     )}
                 />
+                 <FormField
+                    control={form.control}
+                    name="alias"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>N° de téléphone (connexion)</FormLabel>
+                            <FormControl><Input placeholder="+221..." {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                {isMerchant && (
+                     <FormField
+                        control={form.control}
+                        name="merchantCode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Code Marchand (public)</FormLabel>
+                                <FormControl><Input placeholder="ex: boutiqueLamine" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
                 <FormField
                     control={form.control}
                     name="pincode"
@@ -135,3 +155,5 @@ export default function AdminCreateUserForm({ onUserCreated, allowedRoles = ['su
         </Form>
     );
 }
+
+    

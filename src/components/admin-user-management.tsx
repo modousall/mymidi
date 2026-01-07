@@ -105,7 +105,7 @@ export default function AdminUserManagement() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Utilisateur</TableHead>
-                                <TableHead>Alias</TableHead>
+                                <TableHead>Identifiant</TableHead>
                                 <TableHead>Rôle</TableHead>
                                 <TableHead>Solde Principal</TableHead>
                                 <TableHead>Statut</TableHead>
@@ -126,7 +126,13 @@ export default function AdminUserManagement() {
                                             </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{user.alias}</TableCell>
+                                    <TableCell>
+                                        {user.role === 'merchant' ? (
+                                            <Badge variant="outline">{user.merchantCode}</Badge>
+                                        ) : (
+                                            user.alias
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant={roleVariantMap[user.role?.toLowerCase() || 'user'] || 'outline'}>{user.role || 'user'}</Badge>
                                     </TableCell>
@@ -150,3 +156,5 @@ export default function AdminUserManagement() {
         </TransactionsProvider>
     )
 }
+
+    
